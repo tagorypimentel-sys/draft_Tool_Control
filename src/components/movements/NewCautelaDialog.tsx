@@ -52,6 +52,7 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
       )
     );
     setTechName("");
+    setDeliveredBy("");
     setProject("");
     setClient("");
     setShip("");
