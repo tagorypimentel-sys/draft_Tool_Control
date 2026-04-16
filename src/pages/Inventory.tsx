@@ -20,6 +20,8 @@ import { all, run, uid } from "@/lib/db";
 import { useDb } from "@/hooks/useDb";
 import { formatEUR } from "@/lib/format";
 import { toast } from "sonner";
+import { getCalibrationStatus, CALIBRATION_STATUS_CLASSES, getCalibrationBadgeLabel } from "@/lib/calibration";
+import { useLanguage } from "@/hooks/useLanguage";
 
 type Tool = {
   id: string;
