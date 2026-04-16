@@ -1,18 +1,35 @@
-import { useRef } from "react";
+import { useRef, useMemo, useState, useEffect } from "react";
 import { BiLabel } from "@/components/BiLabel";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Download, Upload, Moon, Sun } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
-import { exportDbBytes, importDbBytes } from "@/lib/db";
+import { exportDbBytes, importDbBytes, all, run } from "@/lib/db";
 import { useDb } from "@/hooks/useDb";
 import { toast } from "sonner";
 
 const Settings = () => {
   const { theme, toggle } = useTheme();
-  const { bump } = useDb();
+  const { bump, version } = useDb();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const savedOverdue = useMemo(() => {
+    void version;
+    const row = all<{ value: string | null }>("SELECT value FROM settings WHERE key = 'overdue_days'");
+    return row.length > 0 && row[0].value ? row[0].value : "20";
+  }, [version]);
+  const [overdueDays, setOverdueDays] = useState(savedOverdue);
+  useEffect(() => setOverdueDays(savedOverdue), [savedOverdue]);
+
+  const saveOverdue = () => {
+    const v = parseInt(overdueDays, 10);
+    if (isNaN(v) || v < 1) return;
+    run("INSERT OR REPLACE INTO settings (key, value) VALUES ('overdue_days', ?)", [String(v)]);
+    bump();
+    toast.success("Saved / Salvo");
+  };
 
   const exportDb = () => {
     const bytes = exportDbBytes();
@@ -47,6 +64,27 @@ const Settings = () => {
           </div>
           <Switch checked={theme === "dark"} onCheckedChange={toggle} />
         </div>
+      </Card>
+
+      <Card className="p-4 space-y-4">
+        <BiLabel en="Overdue Alert" pt="Alerta de Atraso" size="small" />
+        <div className="flex items-center gap-3">
+          <BiLabel en="Days to flag overdue" pt="Dias para marcar como atrasada" size="small" className="flex-1" />
+          <Input
+            type="number"
+            min={1}
+            value={overdueDays}
+            onChange={(e) => setOverdueDays(e.target.value)}
+            className="w-20"
+          />
+          <Button size="sm" onClick={saveOverdue}>
+            <BiLabel en="Save" pt="Salvar" size="small" />
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground italic">
+          Cautelas open longer than this will be highlighted in red. <br />
+          Cautelas abertas por mais tempo serão destacadas em vermelho.
+        </p>
       </Card>
 
       <Card className="p-4 space-y-4">
