@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/hooks/useLanguage";
 
 type Size = "default" | "table" | "small";
 
@@ -10,18 +11,24 @@ interface BiLabelProps {
   inline?: boolean;
 }
 
-const sizeMap: Record<Size, { en: string; pt: string }> = {
-  default: { en: "text-[15px] font-bold leading-tight", pt: "text-[11px] italic leading-tight" },
-  table: { en: "text-[13px] font-bold leading-tight", pt: "text-[9px] italic leading-tight" },
-  small: { en: "text-[12px] font-bold leading-tight", pt: "text-[9px] italic leading-tight" },
+const sizeMap: Record<Size, string> = {
+  default: "text-[15px] font-bold leading-tight",
+  table: "text-[13px] font-bold leading-tight",
+  small: "text-[12px] font-bold leading-tight",
 };
 
 export const BiLabel = ({ en, pt, size = "default", className, inline = false }: BiLabelProps) => {
-  const s = sizeMap[size];
+  const { lang } = useLanguage();
+  const text = lang === "pt" ? pt : en;
   return (
-    <span className={cn("flex flex-col", inline && "inline-flex", className)}>
-      <span className={s.en}>{en}</span>
-      <span className={cn(s.pt, "text-muted-foreground")}>{pt}</span>
+    <span
+      className={cn(
+        sizeMap[size],
+        inline ? "inline-flex" : "flex flex-col",
+        className,
+      )}
+    >
+      {text}
     </span>
   );
 };

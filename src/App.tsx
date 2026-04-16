@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { DbProvider } from "@/hooks/useDb";
+import { LanguageProvider } from "@/hooks/useLanguage";
 import AppLayout from "@/components/AppLayout";
 import Inventory from "./pages/Inventory";
 import Technicians from "./pages/Technicians";
@@ -18,8 +19,9 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
-      <DbProvider>
-        <TooltipProvider>
+      <LanguageProvider>
+        <DbProvider>
+          <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -35,8 +37,9 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </TooltipProvider>
-      </DbProvider>
+          </TooltipProvider>
+        </DbProvider>
+      </LanguageProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );
