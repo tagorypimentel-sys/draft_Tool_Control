@@ -15,7 +15,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Search, Upload, X, Eye } from "lucide-react";
+import { Plus, Pencil, Search, Upload, X, Eye, Copy } from "lucide-react";
 import { all, run, uid } from "@/lib/db";
 import { useDb } from "@/hooks/useDb";
 import { formatEUR } from "@/lib/format";
@@ -92,6 +92,9 @@ const Inventory = () => {
   const [editId, setEditId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [quickView, setQuickView] = useState<Tool | null>(null);
+  const [batchSource, setBatchSource] = useState<Tool | null>(null);
+  const [batchQty, setBatchQty] = useState<number>(1);
+  const [batchTags, setBatchTags] = useState<string>("");
 
   const tools = useMemo(() => {
     void version;
@@ -278,6 +281,18 @@ const Inventory = () => {
                   <TableCell className="text-right">{formatEUR(t.value_eur)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setBatchSource(t);
+                          setBatchQty(1);
+                          setBatchTags("");
+                        }}
+                        title="Duplicate in batch / Duplicar em lote"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(t)} title="Edit">
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -486,6 +501,121 @@ const Inventory = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk duplicate dialog */}
+      <Dialog open={!!batchSource} onOpenChange={(o) => !o && setBatchSource(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              <BiLabel en="Duplicate in batch" pt="Duplicar em lote" />
+            </DialogTitle>
+          </DialogHeader>
+          {batchSource && (
+            <div className="space-y-3">
+              <div className="text-sm">
+                <BiLabel
+                  en={`Source: ${batchSource.name} (${batchSource.code})`}
+                  pt={`Origem: ${batchSource.name} (${batchSource.code})`}
+                  size="small"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>
+                  <BiLabel en="How many to create" pt="Quantos criar" size="small" />
+                </Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={batchQty}
+                  onChange={(e) => setBatchQty(parseInt(e.target.value, 10) || 1)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>
+                  <BiLabel
+                    en="TAG numbers (one per line)"
+                    pt="Números TAG (um por linha)"
+                    size="small"
+                  />
+                </Label>
+                <Textarea
+                  rows={6}
+                  value={batchTags}
+                  onChange={(e) => setBatchTags(e.target.value)}
+                  placeholder={`TAG-001\nTAG-002\nTAG-003`}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  <BiLabel
+                    en={`Must have exactly ${batchQty} line(s)`}
+                    pt={`Deve ter exatamente ${batchQty} linha(s)`}
+                    size="small"
+                  />
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBatchSource(null)}>
+              <BiLabel en="Cancel" pt="Cancelar" size="small" />
+            </Button>
+            <Button
+              onClick={() => {
+                if (!batchSource) return;
+                const tags = batchTags
+                  .split("\n")
+                  .map((t) => t.trim())
+                  .filter((t) => t.length > 0);
+                if (batchQty < 1) {
+                  toast.error("Quantity must be ≥ 1 / Quantidade ≥ 1");
+                  return;
+                }
+                if (tags.length !== batchQty) {
+                  toast.error(
+                    `Expected ${batchQty} TAG(s), got ${tags.length} / Esperado ${batchQty}, recebido ${tags.length}`,
+                  );
+                  return;
+                }
+                const src = batchSource;
+                let baseNum = parseInt(nextCode(), 10);
+                for (const tag of tags) {
+                  const newCode = String(baseNum).padStart(5, "0");
+                  baseNum += 1;
+                  run(
+                    `INSERT INTO tools (id, code, name, brand, model, type, serial_tag, category, status, acquisition_date, value_eur, quantity, notes, photo_url, requires_calibration, requires_inspection)
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+                    [
+                      uid(),
+                      newCode,
+                      src.name,
+                      src.brand,
+                      src.model,
+                      src.type,
+                      tag,
+                      src.category,
+                      "available",
+                      src.acquisition_date,
+                      src.value_eur ?? 0,
+                      1,
+                      src.notes,
+                      src.photo_url,
+                      src.requires_calibration,
+                      src.requires_inspection,
+                    ],
+                  );
+                }
+                toast.success(
+                  `${tags.length} tools created / ${tags.length} ferramentas criadas`,
+                );
+                setBatchSource(null);
+                bump();
+              }}
+            >
+              <BiLabel en="Create batch" pt="Criar lote" size="small" />
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

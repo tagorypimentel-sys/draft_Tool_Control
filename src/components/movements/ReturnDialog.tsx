@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { CheckCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,6 +61,7 @@ export function ReturnDialog({ open, onOpenChange, onReturned, initialCautelaId 
   const [filterNumber, setFilterNumber] = useState("");
   const [items, setItems] = useState<PendingItem[]>([]);
   const [state, setState] = useState<Record<string, RowState>>({});
+  const [confirmFullCautelaId, setConfirmFullCautelaId] = useState<string | null>(null);
 
   const loadItems = () => {
     let sql = `
@@ -117,13 +129,14 @@ export function ReturnDialog({ open, onOpenChange, onReturned, initialCautelaId 
     }));
   };
 
-  const submit = () => {
+  const submit = (overrideState?: Record<string, RowState>) => {
+    const effective = overrideState ?? state;
     const ops: { sql: string; params?: any[] }[] = [];
     let any = false;
     const touchedCautelas = new Set<string>();
 
     for (const it of items) {
-      const s = state[it.item_id];
+      const s = effective[it.item_id];
       if (!s || !s.qty || s.qty <= 0) continue;
       if (s.qty > it.pending) {
         toast.error(`Qty exceeds pending for ${it.tool_name}`);
@@ -297,11 +310,57 @@ export function ReturnDialog({ open, onOpenChange, onReturned, initialCautelaId 
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             <BiLabel en="Cancel" pt="Cancelar" size="small" />
           </Button>
-          <Button onClick={submit}>
+          <Button onClick={() => submit()}>
             <BiLabel en="Confirm Return" pt="Confirmar Devolução" size="small" />
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog
+        open={!!confirmFullCautelaId}
+        onOpenChange={(o) => !o && setConfirmFullCautelaId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              <BiLabel en="Return entire cautela?" pt="Devolver cautela inteira?" />
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <BiLabel
+                en="Confirm that ALL items being returned are in working condition."
+                pt="Confirme que TODOS os itens devolvidos estão em condições de uso."
+                size="small"
+              />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              <BiLabel en="Cancel" pt="Cancelar" size="small" />
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const cid = confirmFullCautelaId;
+                if (!cid) return;
+                const override: Record<string, RowState> = { ...state };
+                for (const it of items) {
+                  if (it.cautela_id !== cid) continue;
+                  if (it.pending <= 0) continue;
+                  override[it.item_id] = {
+                    qty: it.pending,
+                    condition: "in_use",
+                    notes: "",
+                  };
+                }
+                setState(override);
+                setConfirmFullCautelaId(null);
+                submit(override);
+              }}
+            >
+              <BiLabel en="Confirm" pt="Confirmar" size="small" />
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
