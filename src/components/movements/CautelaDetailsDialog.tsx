@@ -27,6 +27,7 @@ export function CautelaDetailsDialog({ cautelaId, onOpenChange }: Props) {
               <div><b>Date / Data:</b> {format(new Date(data.cautela.date_out), "dd/MM/yyyy")}</div>
               <div><b>Project / Projeto:</b> {data.cautela.project}</div>
               <div><b>Technician / Técnico:</b> {data.technician}</div>
+              <div><b>Delivered by / Resp. Entrega:</b> {(data.cautela as any).delivered_by || "—"}</div>
               <div><b>Client / Cliente:</b> {data.cautela.client || "—"}</div>
               <div><b>Ship / Navio:</b> {data.cautela.ship || "—"}</div>
               <div><b>Status:</b> {data.cautela.status}</div>
