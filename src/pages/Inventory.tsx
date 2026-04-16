@@ -92,6 +92,7 @@ const Inventory = () => {
   const [form, setForm] = useState<Partial<Tool>>(empty);
   const [editId, setEditId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [quickView, setQuickView] = useState<Tool | null>(null);
 
   const tools = useMemo(() => {
     void version;
@@ -137,8 +138,8 @@ const Inventory = () => {
     }
     if (editId) {
       run(
-        `UPDATE tools SET code=?, name=?, brand=?, type=?, serial_tag=?, category=?, status=?, acquisition_date=?, value_eur=?, quantity=?, notes=?, photo_url=?, requires_calibration=?, requires_inspection=? WHERE id=?`,
-        [form.code, form.name, form.brand || null, form.type || null, form.serial_tag || null,
+        `UPDATE tools SET code=?, name=?, brand=?, model=?, type=?, serial_tag=?, category=?, status=?, acquisition_date=?, value_eur=?, quantity=?, notes=?, photo_url=?, requires_calibration=?, requires_inspection=? WHERE id=?`,
+        [form.code, form.name, form.brand || null, form.model || null, form.type || null, form.serial_tag || null,
          form.category || null, form.status || "available",
          form.acquisition_date || null, Number(form.value_eur) || 0, Number(form.quantity) || 1,
          form.notes || null, form.photo_url || null,
@@ -147,9 +148,9 @@ const Inventory = () => {
       toast.success("Tool updated / Ferramenta atualizada");
     } else {
       run(
-        `INSERT INTO tools (id, code, name, brand, type, serial_tag, category, status, acquisition_date, value_eur, quantity, notes, photo_url, requires_calibration, requires_inspection)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-        [uid(), form.code, form.name, form.brand || null, form.type || null, form.serial_tag || null,
+        `INSERT INTO tools (id, code, name, brand, model, type, serial_tag, category, status, acquisition_date, value_eur, quantity, notes, photo_url, requires_calibration, requires_inspection)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [uid(), form.code, form.name, form.brand || null, form.model || null, form.type || null, form.serial_tag || null,
          form.category || null, form.status || "available",
          form.acquisition_date || null, Number(form.value_eur) || 0, Number(form.quantity) || 1,
          form.notes || null, form.photo_url || null,
