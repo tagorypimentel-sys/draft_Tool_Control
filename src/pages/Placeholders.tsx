@@ -10,5 +10,4 @@ const Placeholder = ({ en, pt }: { en: string; pt: string }) => (
   </div>
 );
 
-export const Calibration = () => <Placeholder en="Calibration" pt="Calibração" />;
 export const Reports = () => <Placeholder en="Reports" pt="Relatórios" />;

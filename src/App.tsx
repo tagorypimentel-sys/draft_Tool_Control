@@ -11,8 +11,8 @@ import Inventory from "./pages/Inventory";
 import Technicians from "./pages/Technicians";
 import Settings from "./pages/Settings";
 import Movements from "./pages/Movements";
-import { Calibration, Reports } from "./pages/Placeholders";
-import NotFound from "./pages/NotFound";
+import Calibration from "./pages/Calibration";
+import { Reports } from "./pages/Placeholders";
 
 const queryClient = new QueryClient();
 
