@@ -231,7 +231,7 @@ const Inventory = () => {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center py-10">
+                <TableCell colSpan={12} className="text-center py-10">
                   <BiLabel en="No tools found" pt="Nenhuma ferramenta encontrada" className="items-center" />
                 </TableCell>
               </TableRow>
