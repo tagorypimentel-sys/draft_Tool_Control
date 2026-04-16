@@ -15,7 +15,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Search, Upload, X, Eye } from "lucide-react";
+import { Plus, Pencil, Search, Upload, X, Eye, Copy } from "lucide-react";
 import { all, run, uid } from "@/lib/db";
 import { useDb } from "@/hooks/useDb";
 import { formatEUR } from "@/lib/format";
@@ -92,6 +92,9 @@ const Inventory = () => {
   const [editId, setEditId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [quickView, setQuickView] = useState<Tool | null>(null);
+  const [batchSource, setBatchSource] = useState<Tool | null>(null);
+  const [batchQty, setBatchQty] = useState<number>(1);
+  const [batchTags, setBatchTags] = useState<string>("");
 
   const tools = useMemo(() => {
     void version;
@@ -278,6 +281,18 @@ const Inventory = () => {
                   <TableCell className="text-right">{formatEUR(t.value_eur)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setBatchSource(t);
+                          setBatchQty(1);
+                          setBatchTags("");
+                        }}
+                        title="Duplicate in batch / Duplicar em lote"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(t)} title="Edit">
                         <Pencil className="h-4 w-4" />
                       </Button>
