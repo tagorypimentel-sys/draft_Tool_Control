@@ -167,9 +167,13 @@ const Inventory = () => {
             <TableRow>
               <TableHead><BiLabel en="Code" pt="Código" size="table" /></TableHead>
               <TableHead><BiLabel en="Name" pt="Nome" size="table" /></TableHead>
+              <TableHead><BiLabel en="Brand" pt="Marca" size="table" /></TableHead>
               <TableHead><BiLabel en="Category" pt="Categoria" size="table" /></TableHead>
+              <TableHead><BiLabel en="Type" pt="Tipo" size="table" /></TableHead>
+              <TableHead><BiLabel en="Serial/TAG" pt="Série/TAG" size="table" /></TableHead>
               <TableHead><BiLabel en="Location" pt="Local" size="table" /></TableHead>
               <TableHead><BiLabel en="Status" pt="Status" size="table" /></TableHead>
+              <TableHead className="text-right"><BiLabel en="Qty" pt="Qtd" size="table" /></TableHead>
               <TableHead className="text-right"><BiLabel en="Value" pt="Valor" size="table" /></TableHead>
               <TableHead className="text-right"><BiLabel en="Actions" pt="Ações" size="table" /></TableHead>
             </TableRow>
@@ -177,7 +181,7 @@ const Inventory = () => {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-10">
+                <TableCell colSpan={11} className="text-center py-10">
                   <BiLabel en="No tools found" pt="Nenhuma ferramenta encontrada" className="items-center" />
                 </TableCell>
               </TableRow>
@@ -186,9 +190,18 @@ const Inventory = () => {
                 <TableRow key={t.id}>
                   <TableCell className="font-mono text-sm">{t.code}</TableCell>
                   <TableCell className="font-medium">{t.name}</TableCell>
+                  <TableCell>{t.brand || "—"}</TableCell>
                   <TableCell>{t.category || "—"}</TableCell>
+                  <TableCell>{t.type || "—"}</TableCell>
+                  <TableCell className="font-mono text-xs">{t.serial_tag || "—"}</TableCell>
                   <TableCell>{t.location || "—"}</TableCell>
                   <TableCell>{statusBadge(t.status)}</TableCell>
+                  <TableCell className="text-right">
+                    {t.quantity}
+                    {t.quantity_out_of_service > 0 && (
+                      <span className="text-rose-600 dark:text-rose-400 text-xs ml-1">({t.quantity_out_of_service})</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right">{formatEUR(t.value_eur)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
@@ -229,6 +242,22 @@ const Inventory = () => {
             <div className="space-y-1">
               <Label><BiLabel en="Name" pt="Nome" size="small" /></Label>
               <Input value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label><BiLabel en="Brand" pt="Marca" size="small" /></Label>
+              <Input value={form.brand || ""} onChange={(e) => setForm({ ...form, brand: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label><BiLabel en="Type" pt="Tipo" size="small" /></Label>
+              <Input value={form.type || ""} onChange={(e) => setForm({ ...form, type: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label><BiLabel en="Serial/TAG" pt="Série/TAG" size="small" /></Label>
+              <Input value={form.serial_tag || ""} onChange={(e) => setForm({ ...form, serial_tag: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label><BiLabel en="Quantity" pt="Quantidade" size="small" /></Label>
+              <Input type="number" min={0} value={form.quantity ?? 1} onChange={(e) => setForm({ ...form, quantity: parseInt(e.target.value, 10) || 0 })} />
             </div>
             <div className="space-y-1">
               <Label><BiLabel en="Category" pt="Categoria" size="small" /></Label>
