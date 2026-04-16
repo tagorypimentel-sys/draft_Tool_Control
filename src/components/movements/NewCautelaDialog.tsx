@@ -13,6 +13,7 @@ import { generateCautelaNumber } from "@/lib/cautela";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
 import { formatDateDisplay, getCalibrationStatus } from "@/lib/calibration";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Tech = { id: string; name: string };
 type Tool = {
@@ -44,6 +45,8 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
   const [client, setClient] = useState("");
   const [ship, setShip] = useState("");
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [selected, setSelected] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -68,20 +71,37 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
     setClient("");
     setShip("");
     setSearch("");
+    setCategoryFilter("all");
+    setTypeFilter("all");
     setSelected({});
   }, [open]);
 
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tools) if (t.category) set.add(t.category);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [tools]);
+
+  const types = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tools) if (t.type) set.add(t.type);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [tools]);
+
   const filtered = useMemo(() => {
-    if (!search) return tools;
     const s = search.toLowerCase();
-    return tools.filter(
-      (t) =>
+    return tools.filter((t) => {
+      if (categoryFilter !== "all" && t.category !== categoryFilter) return false;
+      if (typeFilter !== "all" && t.type !== typeFilter) return false;
+      if (!s) return true;
+      return (
         t.name.toLowerCase().includes(s) ||
         t.code.toLowerCase().includes(s) ||
         (t.brand || "").toLowerCase().includes(s) ||
         (t.serial_tag || "").toLowerCase().includes(s)
-    );
-  }, [tools, search]);
+      );
+    });
+  }, [tools, search, categoryFilter, typeFilter]);
 
   const totals = useMemo(() => {
     let count = 0;
@@ -209,11 +229,33 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
           </div>
         </div>
 
-        <div className="flex gap-2 items-center mt-4">
-          <div className="relative flex-1">
+        <div className="flex flex-wrap gap-2 items-center mt-4">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search tools / Buscar ferramentas" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{`Todas / All`}</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{`Todos / All`}</SelectItem>
+              {types.map((tp) => (
+                <SelectItem key={tp} value={tp}>{tp}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm" onClick={selectAllFiltered}>
             <BiLabel en="Select all filtered" pt="Selecionar todos filtrados" size="small" />
           </Button>
