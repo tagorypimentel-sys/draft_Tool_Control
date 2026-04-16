@@ -39,8 +39,8 @@
     --cal-green-bg: 120 60% 92%;
     --cal-green-fg: 120 100% 20%;
     --cal-yellow: 60 100% 50%;
-    --cal-yellow-bg: 60 100% 88%;
-    --cal-yellow-fg: 50 100% 20%;
+    --cal-yellow-bg: 60 100% 85%;
+    --cal-yellow-fg: 0 0% 10%;
     --cal-red: 0 100% 50%;
     --cal-red-bg: 0 100% 94%;
     --cal-red-fg: 0 100% 30%;
@@ -86,8 +86,8 @@
     --cal-green-bg: 120 40% 18%;
     --cal-green-fg: 120 60% 78%;
     --cal-yellow: 60 100% 50%;
-    --cal-yellow-bg: 60 40% 18%;
-    --cal-yellow-fg: 60 100% 78%;
+    --cal-yellow-bg: 60 80% 75%;
+    --cal-yellow-fg: 0 0% 10%;
     --cal-red: 0 100% 50%;
     --cal-red-bg: 0 40% 20%;
     --cal-red-fg: 0 100% 80%;
