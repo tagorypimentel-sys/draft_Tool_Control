@@ -1,32 +1,18 @@
 
-## Plano: Ajustes no Inventário
+Três ajustes simples no `src/pages/Inventory.tsx`:
 
-### 1. Remover dropdown de status na tabela
-Na coluna **Actions**, remover o `<Select>` que muda status inline. Manter apenas o botão de editar (lápis) e adicionar o novo botão de visualização rápida (olho). A alteração de status continua disponível ao editar a ferramenta.
+### 1. Mover ícone de visualização rápida (olho)
+Na tabela, remover o botão `<Eye>` da coluna **Actions** e criar uma nova coluna entre **Photo** e **Code** contendo apenas o botão olho. Adicionar o `TableHead` correspondente (vazio ou com label "Ver/View").
 
-### 2. Adicionar campo "Model / Modelo"
-**Schema (`src/lib/db.ts`)**: adicionar `ALTER TABLE tools ADD COLUMN model TEXT` na lista idempotente `ALTERS`.
+### 2. Campo Valor sem valor pré-definido
+- No objeto `empty`: remover `value_eur: 0` (deixar `undefined`).
+- No `<Input>` do valor: trocar `value={form.value_eur ?? 0}` por `value={form.value_eur ?? ""}` para que o campo apareça vazio ao abrir o formulário de novo cadastro.
+- O `Number(form.value_eur) || 0` no INSERT/UPDATE já garante 0 caso o usuário não digite.
 
-**Form (`Inventory.tsx`)**:
-- Adicionar `model` ao type `Tool` e ao objeto `empty`.
-- Novo campo no formulário (grid 2 colunas), posicionado após **Brand**.
-- Incluir `model` no `INSERT` e `UPDATE`.
+### 3. Inverter posição de Type e Model
+No grid do formulário, trocar a ordem dos dois blocos:
+- Antes: Brand → **Type** → **Model** → Serial/TAG
+- Depois: Brand → **Model** → **Type** → Serial/TAG
 
-### 3. Botão de visualização rápida (ícone olho)
-Novo componente inline ou dialog dentro do `Inventory.tsx`:
-
-- Botão `<Eye />` na coluna Actions (ao lado do lápis).
-- Abre um `<Dialog>` mostrando:
-  - Foto grande (ou placeholder se não houver) — ~250x250px
-  - **Name / Nome** (título grande)
-  - **Model / Modelo** (linha bilíngue)
-  - **Notes / Observações** (bloco de texto)
-- Bilíngue em todos os labels usando `<BiLabel>`.
-
-### Arquivos a editar
-- `src/lib/db.ts` — adicionar ALTER para `model`
-- `src/pages/Inventory.tsx` — type Tool, empty, form (campo Model), tabela (remover Select, adicionar botão Eye), novo state + Dialog de quick view, ajustar INSERT/UPDATE
-
-### Resumo visual da coluna Actions
-Antes: `[Select status][Editar]`  
-Depois: `[👁 Ver][✏ Editar]`
+### Arquivo a editar
+- `src/pages/Inventory.tsx` (apenas)
