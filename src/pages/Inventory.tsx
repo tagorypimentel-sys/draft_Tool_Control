@@ -15,7 +15,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Search, Upload, X } from "lucide-react";
+import { Plus, Pencil, Search, Upload, X, Eye } from "lucide-react";
 import { all, run, uid } from "@/lib/db";
 import { useDb } from "@/hooks/useDb";
 import { formatEUR } from "@/lib/format";
@@ -26,6 +26,7 @@ type Tool = {
   code: string;
   name: string;
   brand: string | null;
+  model: string | null;
   type: string | null;
   serial_tag: string | null;
   category: string | null;
@@ -60,6 +61,7 @@ const empty: Partial<Tool> = {
   code: "",
   name: "",
   brand: "",
+  model: "",
   type: "",
   serial_tag: "",
   category: "Tool",
@@ -90,6 +92,7 @@ const Inventory = () => {
   const [form, setForm] = useState<Partial<Tool>>(empty);
   const [editId, setEditId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [quickView, setQuickView] = useState<Tool | null>(null);
 
   const tools = useMemo(() => {
     void version;
@@ -135,8 +138,8 @@ const Inventory = () => {
     }
     if (editId) {
       run(
-        `UPDATE tools SET code=?, name=?, brand=?, type=?, serial_tag=?, category=?, status=?, acquisition_date=?, value_eur=?, quantity=?, notes=?, photo_url=?, requires_calibration=?, requires_inspection=? WHERE id=?`,
-        [form.code, form.name, form.brand || null, form.type || null, form.serial_tag || null,
+        `UPDATE tools SET code=?, name=?, brand=?, model=?, type=?, serial_tag=?, category=?, status=?, acquisition_date=?, value_eur=?, quantity=?, notes=?, photo_url=?, requires_calibration=?, requires_inspection=? WHERE id=?`,
+        [form.code, form.name, form.brand || null, form.model || null, form.type || null, form.serial_tag || null,
          form.category || null, form.status || "available",
          form.acquisition_date || null, Number(form.value_eur) || 0, Number(form.quantity) || 1,
          form.notes || null, form.photo_url || null,
@@ -145,9 +148,9 @@ const Inventory = () => {
       toast.success("Tool updated / Ferramenta atualizada");
     } else {
       run(
-        `INSERT INTO tools (id, code, name, brand, type, serial_tag, category, status, acquisition_date, value_eur, quantity, notes, photo_url, requires_calibration, requires_inspection)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-        [uid(), form.code, form.name, form.brand || null, form.type || null, form.serial_tag || null,
+        `INSERT INTO tools (id, code, name, brand, model, type, serial_tag, category, status, acquisition_date, value_eur, quantity, notes, photo_url, requires_calibration, requires_inspection)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [uid(), form.code, form.name, form.brand || null, form.model || null, form.type || null, form.serial_tag || null,
          form.category || null, form.status || "available",
          form.acquisition_date || null, Number(form.value_eur) || 0, Number(form.quantity) || 1,
          form.notes || null, form.photo_url || null,
@@ -270,17 +273,10 @@ const Inventory = () => {
                   <TableCell className="text-right">{formatEUR(t.value_eur)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
-                      <Select value={t.status} onValueChange={(v) => changeStatus(t, v)}>
-                        <SelectTrigger className="h-8 w-[140px] text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {STATUSES.map((s) => (
-                            <SelectItem key={s.v} value={s.v}>{s.en} / {s.pt}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(t)}>
+                      <Button variant="ghost" size="icon" onClick={() => setQuickView(t)} title="Quick view">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(t)} title="Edit">
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </div>
@@ -353,6 +349,10 @@ const Inventory = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1">
+              <Label><BiLabel en="Model" pt="Modelo" size="small" /></Label>
+              <Input value={form.model || ""} onChange={(e) => setForm({ ...form, model: e.target.value })} />
             </div>
             <div className="space-y-1">
               <Label><BiLabel en="Serial/TAG" pt="Série/TAG" size="small" /></Label>
@@ -447,6 +447,43 @@ const Inventory = () => {
               <BiLabel en="Save" pt="Salvar" size="small" />
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick View Dialog */}
+      <Dialog open={!!quickView} onOpenChange={(o) => !o && setQuickView(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              <BiLabel en="Quick View" pt="Visualização Rápida" />
+            </DialogTitle>
+          </DialogHeader>
+          {quickView && (
+            <div className="flex flex-col items-center gap-4">
+              {quickView.photo_url ? (
+                <img src={quickView.photo_url} alt={quickView.name} className="h-60 w-60 rounded-lg object-cover border" />
+              ) : (
+                <div className="h-60 w-60 rounded-lg bg-muted flex items-center justify-center border">
+                  <Eye className="h-12 w-12 text-muted-foreground" />
+                </div>
+              )}
+              <div className="text-center space-y-2 w-full">
+                <h3 className="text-lg font-bold">{quickView.name}</h3>
+                {quickView.model && (
+                  <div>
+                    <BiLabel en="Model" pt="Modelo" size="small" className="items-center" />
+                    <p className="text-sm">{quickView.model}</p>
+                  </div>
+                )}
+                {quickView.notes && (
+                  <div>
+                    <BiLabel en="Notes" pt="Observações" size="small" className="items-center" />
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{quickView.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
