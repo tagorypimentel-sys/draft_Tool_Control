@@ -245,6 +245,11 @@ const Inventory = () => {
                       <div className="h-10 w-10 rounded bg-muted" />
                     )}
                   </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" onClick={() => setQuickView(t)} title="Quick view">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                   <TableCell className="font-mono text-sm">{t.code}</TableCell>
                   <TableCell className="font-medium">
                     {t.name}
@@ -273,9 +278,6 @@ const Inventory = () => {
                   <TableCell className="text-right">{formatEUR(t.value_eur)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
-                      <Button variant="ghost" size="icon" onClick={() => setQuickView(t)} title="Quick view">
-                        <Eye className="h-4 w-4" />
-                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(t)} title="Edit">
                         <Pencil className="h-4 w-4" />
                       </Button>
