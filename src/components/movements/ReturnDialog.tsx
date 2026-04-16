@@ -310,11 +310,57 @@ export function ReturnDialog({ open, onOpenChange, onReturned, initialCautelaId 
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             <BiLabel en="Cancel" pt="Cancelar" size="small" />
           </Button>
-          <Button onClick={submit}>
+          <Button onClick={() => submit()}>
             <BiLabel en="Confirm Return" pt="Confirmar Devolução" size="small" />
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog
+        open={!!confirmFullCautelaId}
+        onOpenChange={(o) => !o && setConfirmFullCautelaId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              <BiLabel en="Return entire cautela?" pt="Devolver cautela inteira?" />
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <BiLabel
+                en="Confirm that ALL items being returned are in working condition."
+                pt="Confirme que TODOS os itens devolvidos estão em condições de uso."
+                size="small"
+              />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              <BiLabel en="Cancel" pt="Cancelar" size="small" />
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const cid = confirmFullCautelaId;
+                if (!cid) return;
+                const override: Record<string, RowState> = { ...state };
+                for (const it of items) {
+                  if (it.cautela_id !== cid) continue;
+                  if (it.pending <= 0) continue;
+                  override[it.item_id] = {
+                    qty: it.pending,
+                    condition: "in_use",
+                    notes: "",
+                  };
+                }
+                setState(override);
+                setConfirmFullCautelaId(null);
+                submit(override);
+              }}
+            >
+              <BiLabel en="Confirm" pt="Confirmar" size="small" />
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
