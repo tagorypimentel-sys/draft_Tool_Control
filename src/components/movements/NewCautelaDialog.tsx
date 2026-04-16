@@ -71,20 +71,37 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
     setClient("");
     setShip("");
     setSearch("");
+    setCategoryFilter("all");
+    setTypeFilter("all");
     setSelected({});
   }, [open]);
 
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tools) if (t.category) set.add(t.category);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [tools]);
+
+  const types = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tools) if (t.type) set.add(t.type);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [tools]);
+
   const filtered = useMemo(() => {
-    if (!search) return tools;
     const s = search.toLowerCase();
-    return tools.filter(
-      (t) =>
+    return tools.filter((t) => {
+      if (categoryFilter !== "all" && t.category !== categoryFilter) return false;
+      if (typeFilter !== "all" && t.type !== typeFilter) return false;
+      if (!s) return true;
+      return (
         t.name.toLowerCase().includes(s) ||
         t.code.toLowerCase().includes(s) ||
         (t.brand || "").toLowerCase().includes(s) ||
         (t.serial_tag || "").toLowerCase().includes(s)
-    );
-  }, [tools, search]);
+      );
+    });
+  }, [tools, search, categoryFilter, typeFilter]);
 
   const totals = useMemo(() => {
     let count = 0;
