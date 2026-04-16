@@ -15,7 +15,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Search, Upload, X, Eye, Copy } from "lucide-react";
+import { Plus, Pencil, Search, Upload, X, Eye, Copy, FileSpreadsheet, FileText } from "lucide-react";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { all, run, uid } from "@/lib/db";
 import { useDb } from "@/hooks/useDb";
 import { formatEUR } from "@/lib/format";
