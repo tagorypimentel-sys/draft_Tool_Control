@@ -36,6 +36,7 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
   const [technicians, setTechnicians] = useState<Tech[]>([]);
   const [tools, setTools] = useState<Tool[]>([]);
   const [techName, setTechName] = useState("");
+  const [deliveredBy, setDeliveredBy] = useState("");
   const [project, setProject] = useState("");
   const [client, setClient] = useState("");
   const [ship, setShip] = useState("");
@@ -51,6 +52,7 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
       )
     );
     setTechName("");
+    setDeliveredBy("");
     setProject("");
     setClient("");
     setShip("");
@@ -127,9 +129,9 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
       });
     }
     ops.push({
-      sql: `INSERT INTO cautelas (id, number, project, client, ship, technician_id, date_out, status)
-            VALUES (?,?,?,?,?,?,?, 'open')`,
-      params: [cautelaId, number, project.trim(), client || null, ship || null, techId, now],
+      sql: `INSERT INTO cautelas (id, number, project, client, ship, technician_id, date_out, status, delivered_by)
+            VALUES (?,?,?,?,?,?,?, 'open', ?)`,
+      params: [cautelaId, number, project.trim(), client || null, ship || null, techId, now, deliveredBy.trim() || null],
     });
     for (const t of items) {
       const qty = selected[t.id];
@@ -166,7 +168,7 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <div className="space-y-1 col-span-2 md:col-span-1">
             <Label><BiLabel en="Technician/Supervisor" pt="Técnico/Supervisor" size="small" /></Label>
             <Input
@@ -180,6 +182,10 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
                 <option key={t.id} value={t.name} />
               ))}
             </datalist>
+          </div>
+          <div className="space-y-1">
+            <Label><BiLabel en="Delivered by" pt="Responsável pela Entrega" size="small" /></Label>
+            <Input value={deliveredBy} onChange={(e) => setDeliveredBy(e.target.value)} />
           </div>
           <div className="space-y-1">
             <Label><BiLabel en="Project Number" pt="Nº Projeto" size="small" /></Label>
