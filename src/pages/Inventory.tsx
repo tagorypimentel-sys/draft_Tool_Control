@@ -449,6 +449,43 @@ const Inventory = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Quick View Dialog */}
+      <Dialog open={!!quickView} onOpenChange={(o) => !o && setQuickView(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              <BiLabel en="Quick View" pt="Visualização Rápida" />
+            </DialogTitle>
+          </DialogHeader>
+          {quickView && (
+            <div className="flex flex-col items-center gap-4">
+              {quickView.photo_url ? (
+                <img src={quickView.photo_url} alt={quickView.name} className="h-60 w-60 rounded-lg object-cover border" />
+              ) : (
+                <div className="h-60 w-60 rounded-lg bg-muted flex items-center justify-center border">
+                  <Eye className="h-12 w-12 text-muted-foreground" />
+                </div>
+              )}
+              <div className="text-center space-y-2 w-full">
+                <h3 className="text-lg font-bold">{quickView.name}</h3>
+                {quickView.model && (
+                  <div>
+                    <BiLabel en="Model" pt="Modelo" size="small" className="items-center" />
+                    <p className="text-sm">{quickView.model}</p>
+                  </div>
+                )}
+                {quickView.notes && (
+                  <div>
+                    <BiLabel en="Notes" pt="Observações" size="small" className="items-center" />
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{quickView.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
