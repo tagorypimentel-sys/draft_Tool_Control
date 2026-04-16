@@ -35,7 +35,7 @@ interface Props {
 export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
   const [technicians, setTechnicians] = useState<Tech[]>([]);
   const [tools, setTools] = useState<Tool[]>([]);
-  const [techId, setTechId] = useState("");
+  const [techName, setTechName] = useState("");
   const [project, setProject] = useState("");
   const [client, setClient] = useState("");
   const [ship, setShip] = useState("");
