@@ -215,6 +215,7 @@ const Inventory = () => {
           <TableHeader>
             <TableRow>
               <TableHead><BiLabel en="Photo" pt="Foto" size="table" /></TableHead>
+              <TableHead className="w-12"></TableHead>
               <TableHead><BiLabel en="Code" pt="Código" size="table" /></TableHead>
               <TableHead><BiLabel en="Name" pt="Nome" size="table" /></TableHead>
               <TableHead><BiLabel en="Brand" pt="Marca" size="table" /></TableHead>
