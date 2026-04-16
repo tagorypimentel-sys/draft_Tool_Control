@@ -16,11 +16,12 @@ import { BiLabel } from "@/components/BiLabel";
 import { Badge } from "@/components/ui/badge";
 import { useDb } from "@/hooks/useDb";
 import { all } from "@/lib/db";
+import { getCalibrationStatus } from "@/lib/calibration";
 
 const items = [
   { en: "Inventory", pt: "Inventário", url: "/", icon: Wrench, end: true },
   { en: "Movements", pt: "Movimentações", url: "/movements", icon: ArrowLeftRight, badge: true },
-  { en: "Calibration", pt: "Calibração", url: "/calibration", icon: Crosshair },
+  { en: "Calibration", pt: "Calibração", url: "/calibration", icon: Crosshair, calibration: true },
   { en: "Reports", pt: "Relatórios", url: "/reports", icon: BarChart2 },
   { en: "Technician Register", pt: "Cadastro de Técnicos", url: "/technicians", icon: UserCheck },
 ];
@@ -34,7 +35,21 @@ export function AppSidebar() {
   const pendingCount = ready
     ? (all<{ c: number }>("SELECT COUNT(*) as c FROM cautelas WHERE status IN ('open','partial')")[0]?.c ?? 0)
     : 0;
-  // version ref to refresh
+
+  const calibrationRows = ready
+    ? all<{ next_calibration_date: string | null }>("SELECT next_calibration_date FROM tools WHERE requires_calibration = 1")
+    : [];
+
+  const calibrationCounts = calibrationRows.reduce(
+    (acc, row) => {
+      const status = getCalibrationStatus(row.next_calibration_date);
+      if (status === "yellow") acc.yellow += 1;
+      else if (status === "red" || status === "never") acc.red += 1;
+      return acc;
+    },
+    { red: 0, yellow: 0 }
+  );
+
   void version;
 
   const isActive = (path: string, end?: boolean) =>
@@ -61,6 +76,8 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => {
                 const active = isActive(item.url, item.end);
+                const showRedDot = item.calibration && calibrationCounts.red > 0;
+                const showYellowDot = item.calibration && !showRedDot && calibrationCounts.yellow > 0;
                 return (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
@@ -72,7 +89,12 @@ export function AppSidebar() {
                       }
                     >
                       <NavLink to={item.url} end={item.end} className="h-auto py-2">
-                        <item.icon className={active ? "text-blue-700 dark:text-blue-300" : ""} />
+                        <div className="relative">
+                          <item.icon className={active ? "text-blue-700 dark:text-blue-300" : ""} />
+                          {(showRedDot || showYellowDot) && (
+                            <span className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full ring-2 ring-sidebar ${showRedDot ? "bg-cal-red" : "bg-cal-yellow"}`} />
+                          )}
+                        </div>
                         {!collapsed && (
                           <>
                             <BiLabel en={item.en} pt={item.pt} size="small" className="flex-1" />

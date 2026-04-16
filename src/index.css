@@ -35,6 +35,16 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
+    --cal-green: 87 51% 37%;
+    --cal-green-bg: 87 41% 92%;
+    --cal-green-fg: 95 77% 18%;
+    --cal-yellow: 36 86% 55%;
+    --cal-yellow-bg: 41 72% 92%;
+    --cal-yellow-fg: 34 89% 21%;
+    --cal-red: 1 72% 59%;
+    --cal-red-bg: 0 71% 95%;
+    --cal-red-fg: 0 59% 30%;
+
     --border: 214 32% 91%;
     --input: 214 32% 91%;
     --ring: 217 91% 45%;
@@ -72,6 +82,15 @@
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
+    --cal-green: 87 51% 37%;
+    --cal-green-bg: 87 26% 18%;
+    --cal-green-fg: 87 55% 74%;
+    --cal-yellow: 36 86% 55%;
+    --cal-yellow-bg: 36 40% 19%;
+    --cal-yellow-fg: 42 88% 73%;
+    --cal-red: 1 72% 59%;
+    --cal-red-bg: 0 34% 20%;
+    --cal-red-fg: 1 80% 79%;
     --border: 217 33% 20%;
     --input: 217 33% 20%;
     --ring: 217 91% 60%;

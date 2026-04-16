@@ -18,7 +18,19 @@ CREATE TABLE IF NOT EXISTS tools (
   acquisition_date TEXT,
   value_eur REAL DEFAULT 0,
   notes TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  brand TEXT,
+  type TEXT,
+  serial_tag TEXT,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  quantity_out_of_service INTEGER NOT NULL DEFAULT 0,
+  photo_url TEXT,
+  requires_calibration INTEGER NOT NULL DEFAULT 0,
+  requires_inspection INTEGER NOT NULL DEFAULT 0,
+  model TEXT,
+  last_calibration_date TEXT,
+  next_calibration_date TEXT,
+  calibration_frequency INTEGER
 );
 CREATE TABLE IF NOT EXISTS technicians (
   id TEXT PRIMARY KEY,
@@ -60,7 +72,8 @@ CREATE TABLE IF NOT EXISTS cautelas (
   date_in TEXT,
   status TEXT NOT NULL DEFAULT 'open',
   notes TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  delivered_by TEXT
 );
 CREATE TABLE IF NOT EXISTS cautela_items (
   id TEXT PRIMARY KEY,
@@ -72,6 +85,29 @@ CREATE TABLE IF NOT EXISTS cautela_items (
   condition_notes TEXT,
   unit_value_eur REAL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS calibration_records (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tool_id TEXT NOT NULL,
+  current_date_snapshot TEXT NOT NULL,
+  last_calibration_date TEXT NOT NULL,
+  frequency_months INTEGER NOT NULL,
+  next_calibration_date TEXT NOT NULL,
+  certifying_company TEXT NOT NULL,
+  calibration_cost_eur REAL,
+  certificate_file TEXT,
+  certificate_filename TEXT,
+  certificate_uploaded_at TEXT,
+  notes TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS calibration_labs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT UNIQUE NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_calibration_records_tool_id ON calibration_records(tool_id);
+CREATE INDEX IF NOT EXISTS idx_calibration_records_next_due ON calibration_records(next_calibration_date);
+CREATE INDEX IF NOT EXISTS idx_calibration_records_last_date ON calibration_records(last_calibration_date);
 `;
 
 // Idempotent column additions for existing DBs
@@ -85,7 +121,42 @@ const ALTERS = [
   "ALTER TABLE tools ADD COLUMN requires_calibration INTEGER NOT NULL DEFAULT 0",
   "ALTER TABLE tools ADD COLUMN requires_inspection INTEGER NOT NULL DEFAULT 0",
   "ALTER TABLE tools ADD COLUMN model TEXT",
+  "ALTER TABLE tools ADD COLUMN last_calibration_date TEXT",
+  "ALTER TABLE tools ADD COLUMN next_calibration_date TEXT",
+  "ALTER TABLE tools ADD COLUMN calibration_frequency INTEGER",
   "ALTER TABLE cautelas ADD COLUMN delivered_by TEXT",
+  `CREATE VIEW IF NOT EXISTS v_calibration_status AS
+   SELECT
+     t.id AS tool_id,
+     t.name AS tool_name,
+     t.brand,
+     t.type,
+     t.serial_tag,
+     t.next_calibration_date,
+     t.last_calibration_date,
+     t.calibration_frequency,
+     r.certifying_company,
+     r.calibration_cost_eur,
+     r.certificate_file,
+     r.certificate_filename,
+     r.certificate_uploaded_at,
+     CASE
+       WHEN t.next_calibration_date IS NULL THEN 'never'
+       WHEN t.next_calibration_date <= date('now', '+30 days') THEN 'red'
+       WHEN t.next_calibration_date <= date('now', '+180 days') THEN 'yellow'
+       ELSE 'green'
+     END AS calibration_status,
+     CAST(julianday(t.next_calibration_date) - julianday(date('now')) AS INTEGER) AS days_remaining
+   FROM tools t
+   LEFT JOIN calibration_records r
+     ON r.id = (
+       SELECT cr.id
+       FROM calibration_records cr
+       WHERE cr.tool_id = t.id
+       ORDER BY cr.last_calibration_date DESC, cr.id DESC
+       LIMIT 1
+     )
+   WHERE t.requires_calibration = 1`,
 ];
 
 function applyAlters(db: Database) {

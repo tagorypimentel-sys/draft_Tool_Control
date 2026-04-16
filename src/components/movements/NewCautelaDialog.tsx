@@ -3,15 +3,16 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { BiLabel } from "@/components/BiLabel";
 import { all, exec, uid } from "@/lib/db";
 import { formatEUR } from "@/lib/format";
 import { generateCautelaNumber } from "@/lib/cautela";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
+import { formatDateDisplay, getCalibrationStatus } from "@/lib/calibration";
 
 type Tech = { id: string; name: string };
 type Tool = {
@@ -24,6 +25,8 @@ type Tool = {
   serial_tag: string | null;
   quantity: number;
   value_eur: number | null;
+  next_calibration_date: string | null;
+  requires_calibration: number;
 };
 
 interface Props {
@@ -48,7 +51,15 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
     setTechnicians(all<Tech>("SELECT id, name FROM technicians ORDER BY name"));
     setTools(
       all<Tool>(
-        "SELECT id, code, name, brand, category, type, serial_tag, quantity, value_eur FROM tools WHERE status='available' AND quantity > 0 ORDER BY name"
+        `SELECT id, code, name, brand, category, type, serial_tag, quantity, value_eur, next_calibration_date, requires_calibration
+         FROM tools
+         WHERE status='available'
+           AND quantity > 0
+           AND (
+             requires_calibration = 0
+             OR (requires_calibration = 1 AND next_calibration_date > date('now', '+30 days'))
+           )
+         ORDER BY name`
       )
     );
     setTechName("");
@@ -93,10 +104,12 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
       return next;
     });
   };
+
   const setQty = (t: Tool, qty: number) => {
     const clamped = Math.max(1, Math.min(qty || 1, t.quantity));
     setSelected((prev) => ({ ...prev, [t.id]: clamped }));
   };
+
   const selectAllFiltered = () => {
     setSelected((prev) => {
       const next = { ...prev };
@@ -104,6 +117,7 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
       return next;
     });
   };
+
   const clearAll = () => setSelected({});
 
   const save = () => {
@@ -113,7 +127,6 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
     const items = tools.filter((t) => (selected[t.id] || 0) > 0);
     if (items.length === 0) return toast.error("Select at least one tool / Selecione ao menos uma ferramenta");
 
-    // Find or create technician by name (case-insensitive)
     const existing = technicians.find((t) => t.name.toLowerCase() === name.toLowerCase());
     const techId = existing ? existing.id : uid();
 
@@ -171,12 +184,7 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <div className="space-y-1 col-span-2 md:col-span-1">
             <Label><BiLabel en="Technician/Supervisor" pt="Técnico/Supervisor" size="small" /></Label>
-            <Input
-              list="tech-suggestions"
-              value={techName}
-              onChange={(e) => setTechName(e.target.value)}
-              placeholder=""
-            />
+            <Input list="tech-suggestions" value={techName} onChange={(e) => setTechName(e.target.value)} placeholder="" />
             <datalist id="tech-suggestions">
               {technicians.map((t) => (
                 <option key={t.id} value={t.name} />
@@ -204,12 +212,7 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
         <div className="flex gap-2 items-center mt-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search tools / Buscar ferramentas"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
+            <Input placeholder="Search tools / Buscar ferramentas" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Button variant="outline" size="sm" onClick={selectAllFiltered}>
             <BiLabel en="Select all filtered" pt="Selecionar todos filtrados" size="small" />
@@ -230,6 +233,7 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
                 <TableHead><BiLabel en="Category" pt="Categoria" size="table" /></TableHead>
                 <TableHead><BiLabel en="Type" pt="Tipo" size="table" /></TableHead>
                 <TableHead><BiLabel en="Serial/TAG" pt="Série/TAG" size="table" /></TableHead>
+                <TableHead><BiLabel en="Calibration" pt="Calibração" size="table" /></TableHead>
                 <TableHead className="text-right"><BiLabel en="Avail." pt="Disp." size="table" /></TableHead>
                 <TableHead className="text-right"><BiLabel en="Qty" pt="Qtd" size="table" /></TableHead>
                 <TableHead className="text-right"><BiLabel en="Unit €" pt="Unit. €" size="table" /></TableHead>
@@ -238,13 +242,15 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-6">
+                  <TableCell colSpan={11} className="text-center py-6">
                     <BiLabel en="No available tools" pt="Sem ferramentas disponíveis" className="items-center" />
                   </TableCell>
                 </TableRow>
               ) : (
                 filtered.map((t) => {
                   const isSel = !!selected[t.id];
+                  const calibrationStatus = t.requires_calibration ? getCalibrationStatus(t.next_calibration_date) : null;
+                  const showWarning = calibrationStatus === "yellow";
                   return (
                     <TableRow key={t.id}>
                       <TableCell>
@@ -256,6 +262,15 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
                       <TableCell>{t.category || "—"}</TableCell>
                       <TableCell>{t.type || "—"}</TableCell>
                       <TableCell className="font-mono text-xs">{t.serial_tag || "—"}</TableCell>
+                      <TableCell>
+                        {showWarning ? (
+                          <Badge variant="outline" className="border-cal-yellow/20 bg-cal-yellow-bg text-cal-yellow-fg">
+                            {`Vencimento Próximo — ${formatDateDisplay(t.next_calibration_date)}`}
+                          </Badge>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">{t.quantity}</TableCell>
                       <TableCell className="text-right">
                         <Input
