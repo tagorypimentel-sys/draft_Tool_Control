@@ -140,34 +140,31 @@ export function exportCautelaExcel(cautelaId: string) {
     ["Client / Cliente", cautela.client || ""],
     ["Ship / Navio", cautela.ship || ""],
     ["Technician / Técnico", technician],
+    ["Delivered by / Responsável pela Entrega", cautela.delivered_by || ""],
     [],
   ];
 
   const header = [
+    "Qty / Qtd",
     "Name / Nome",
     "Brand / Marca",
-    "Category / Categoria",
-    "Type / Tipo",
     "Serial / TAG",
-    "Value (€)",
-    "Qty",
+    "Type / Tipo",
     "Total (€)",
   ];
-  const rows = items.map((it) => [
+  const rows: (string | number)[][] = items.map((it) => [
+    it.qty_out,
     it.name,
     it.brand || "",
-    it.category || "",
-    it.type || "",
     it.serial_tag || "",
-    it.unit_value_eur || 0,
-    it.qty_out,
+    it.type || "",
     (it.unit_value_eur || 0) * it.qty_out,
   ]);
   const grandTotal = items.reduce(
     (s, it) => s + (it.unit_value_eur || 0) * it.qty_out,
     0
   );
-  rows.push(["", "", "", "", "", "", "TOTAL", grandTotal]);
+  rows.push(["", "", "", "", "TOTAL", grandTotal]);
 
   const aoa = [...meta, header, ...rows];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
