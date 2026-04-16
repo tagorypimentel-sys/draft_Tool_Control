@@ -97,7 +97,7 @@ export async function getDb(): Promise<Database> {
   if (dbInstance) return dbInstance;
   if (!SQL) {
     SQL = await initSqlJs({
-      locateFile: (file) => `https://sql.js.org/dist/${file}`,
+      locateFile: () => `/sql-wasm.wasm`,
     });
   }
   const stored = await get<Uint8Array>(STORAGE_KEY);
@@ -130,7 +130,7 @@ export function exportDbBytes(): Uint8Array | null {
 export async function importDbBytes(bytes: Uint8Array) {
   if (!SQL) {
     SQL = await initSqlJs({
-      locateFile: (file) => `https://sql.js.org/dist/${file}`,
+      locateFile: () => `/sql-wasm.wasm`,
     });
   }
   if (dbInstance) dbInstance.close();
