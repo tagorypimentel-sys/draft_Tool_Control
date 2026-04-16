@@ -32,7 +32,7 @@ export function AppSidebar() {
   const { ready, version } = useDb();
 
   const pendingCount = ready
-    ? (all<{ c: number }>("SELECT COUNT(*) as c FROM movements WHERE date_in IS NULL")[0]?.c ?? 0)
+    ? (all<{ c: number }>("SELECT COUNT(*) as c FROM cautelas WHERE status IN ('open','partial')")[0]?.c ?? 0)
     : 0;
   // version ref to refresh
   void version;
