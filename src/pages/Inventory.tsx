@@ -273,17 +273,10 @@ const Inventory = () => {
                   <TableCell className="text-right">{formatEUR(t.value_eur)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
-                      <Select value={t.status} onValueChange={(v) => changeStatus(t, v)}>
-                        <SelectTrigger className="h-8 w-[140px] text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {STATUSES.map((s) => (
-                            <SelectItem key={s.v} value={s.v}>{s.en} / {s.pt}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(t)}>
+                      <Button variant="ghost" size="icon" onClick={() => setQuickView(t)} title="Quick view">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(t)} title="Edit">
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </div>
