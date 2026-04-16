@@ -85,6 +85,7 @@ const ALTERS = [
   "ALTER TABLE tools ADD COLUMN requires_calibration INTEGER NOT NULL DEFAULT 0",
   "ALTER TABLE tools ADD COLUMN requires_inspection INTEGER NOT NULL DEFAULT 0",
   "ALTER TABLE tools ADD COLUMN model TEXT",
+  "ALTER TABLE cautelas ADD COLUMN delivered_by TEXT",
 ];
 
 function applyAlters(db: Database) {
