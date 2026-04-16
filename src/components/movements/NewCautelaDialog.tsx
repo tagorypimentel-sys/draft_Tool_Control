@@ -50,7 +50,7 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
         "SELECT id, code, name, brand, category, type, serial_tag, quantity, value_eur FROM tools WHERE status='available' AND quantity > 0 ORDER BY name"
       )
     );
-    setTechId("");
+    setTechName("");
     setProject("");
     setClient("");
     setShip("");
@@ -105,22 +105,32 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
   const clearAll = () => setSelected({});
 
   const save = () => {
-    if (!techId) return toast.error("Select technician / Selecione o técnico");
+    const name = techName.trim();
+    if (!name) return toast.error("Enter technician / Informe o técnico");
     if (!project.trim()) return toast.error("Project required / Projeto obrigatório");
     const items = tools.filter((t) => (selected[t.id] || 0) > 0);
     if (items.length === 0) return toast.error("Select at least one tool / Selecione ao menos uma ferramenta");
+
+    // Find or create technician by name (case-insensitive)
+    const existing = technicians.find((t) => t.name.toLowerCase() === name.toLowerCase());
+    const techId = existing ? existing.id : uid();
 
     const cautelaId = uid();
     const number = generateCautelaNumber(project);
     const now = new Date().toISOString();
 
-    const ops: { sql: string; params?: any[] }[] = [
-      {
-        sql: `INSERT INTO cautelas (id, number, project, client, ship, technician_id, date_out, status)
-              VALUES (?,?,?,?,?,?,?, 'open')`,
-        params: [cautelaId, number, project.trim(), client || null, ship || null, techId, now],
-      },
-    ];
+    const ops: { sql: string; params?: any[] }[] = [];
+    if (!existing) {
+      ops.push({
+        sql: `INSERT INTO technicians (id, name) VALUES (?, ?)`,
+        params: [techId, name],
+      });
+    }
+    ops.push({
+      sql: `INSERT INTO cautelas (id, number, project, client, ship, technician_id, date_out, status)
+            VALUES (?,?,?,?,?,?,?, 'open')`,
+      params: [cautelaId, number, project.trim(), client || null, ship || null, techId, now],
+    });
     for (const t of items) {
       const qty = selected[t.id];
       ops.push({
@@ -159,14 +169,17 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="space-y-1 col-span-2 md:col-span-1">
             <Label><BiLabel en="Technician/Supervisor" pt="Técnico/Supervisor" size="small" /></Label>
-            <Select value={techId} onValueChange={setTechId}>
-              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-              <SelectContent>
-                {technicians.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              list="tech-suggestions"
+              value={techName}
+              onChange={(e) => setTechName(e.target.value)}
+              placeholder=""
+            />
+            <datalist id="tech-suggestions">
+              {technicians.map((t) => (
+                <option key={t.id} value={t.name} />
+              ))}
+            </datalist>
           </div>
           <div className="space-y-1">
             <Label><BiLabel en="Project Number" pt="Nº Projeto" size="small" /></Label>
