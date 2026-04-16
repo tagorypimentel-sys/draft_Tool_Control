@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeftRight, Plus, Eye, Printer, FileDown, FileSpreadsheet, RotateCcw } from "lucide-react";
+import { ArrowLeftRight, Plus, Eye, Printer, FileDown, FileSpreadsheet, RotateCcw, AlertTriangle } from "lucide-react";
 import { useDb } from "@/hooks/useDb";
 import { all } from "@/lib/db";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NewCautelaDialog } from "@/components/movements/NewCautelaDialog";
 import { ReturnDialog } from "@/components/movements/ReturnDialog";
 import { CautelaDetailsDialog } from "@/components/movements/CautelaDetailsDialog";
@@ -41,6 +42,12 @@ const Movements = () => {
   const [detailsId, setDetailsId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("active");
+
+  const overdueDays = useMemo(() => {
+    void version;
+    const row = all<{ value: string | null }>("SELECT value FROM settings WHERE key = 'overdue_days'");
+    return row.length > 0 && row[0].value ? parseInt(row[0].value, 10) : 20;
+  }, [version]);
 
   const rows = useMemo(() => {
     void version;
@@ -135,9 +142,25 @@ const Movements = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-mono text-xs font-bold">{r.number}</TableCell>
+              filtered.map((r) => {
+                const isOverdue = r.status !== "closed" && differenceInDays(new Date(), new Date(r.date_out)) > overdueDays;
+                return (
+                <TableRow key={r.id} className={isOverdue ? "bg-red-50 dark:bg-red-950/30" : ""}>
+                  <TableCell className="font-mono text-xs font-bold">
+                    <span className="flex items-center gap-1">
+                      {r.number}
+                      {isOverdue && (
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <BiLabel en={`Overdue (>${overdueDays} days)`} pt={`Atrasada (>${overdueDays} dias)`} size="small" />
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </span>
+                  </TableCell>
                   <TableCell>{r.project}</TableCell>
                   <TableCell>{r.technician_name || "—"}</TableCell>
                   <TableCell>{r.client || "—"}</TableCell>
@@ -171,7 +194,8 @@ const Movements = () => {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>
