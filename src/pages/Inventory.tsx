@@ -26,6 +26,7 @@ type Tool = {
   code: string;
   name: string;
   brand: string | null;
+  model: string | null;
   type: string | null;
   serial_tag: string | null;
   category: string | null;
@@ -60,6 +61,7 @@ const empty: Partial<Tool> = {
   code: "",
   name: "",
   brand: "",
+  model: "",
   type: "",
   serial_tag: "",
   category: "Tool",
