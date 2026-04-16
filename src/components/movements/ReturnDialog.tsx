@@ -129,13 +129,14 @@ export function ReturnDialog({ open, onOpenChange, onReturned, initialCautelaId 
     }));
   };
 
-  const submit = () => {
+  const submit = (overrideState?: Record<string, RowState>) => {
+    const effective = overrideState ?? state;
     const ops: { sql: string; params?: any[] }[] = [];
     let any = false;
     const touchedCautelas = new Set<string>();
 
     for (const it of items) {
-      const s = state[it.item_id];
+      const s = effective[it.item_id];
       if (!s || !s.qty || s.qty <= 0) continue;
       if (s.qty > it.pending) {
         toast.error(`Qty exceeds pending for ${it.tool_name}`);
