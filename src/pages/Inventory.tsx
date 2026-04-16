@@ -66,7 +66,6 @@ const empty: Partial<Tool> = {
   serial_tag: "",
   category: "Tool",
   status: "available",
-  value_eur: 0,
   quantity: 1,
   notes: "",
   photo_url: "",
@@ -216,6 +215,7 @@ const Inventory = () => {
           <TableHeader>
             <TableRow>
               <TableHead><BiLabel en="Photo" pt="Foto" size="table" /></TableHead>
+              <TableHead className="w-12"></TableHead>
               <TableHead><BiLabel en="Code" pt="Código" size="table" /></TableHead>
               <TableHead><BiLabel en="Name" pt="Nome" size="table" /></TableHead>
               <TableHead><BiLabel en="Brand" pt="Marca" size="table" /></TableHead>
@@ -231,7 +231,7 @@ const Inventory = () => {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center py-10">
+                <TableCell colSpan={12} className="text-center py-10">
                   <BiLabel en="No tools found" pt="Nenhuma ferramenta encontrada" className="items-center" />
                 </TableCell>
               </TableRow>
@@ -244,6 +244,11 @@ const Inventory = () => {
                     ) : (
                       <div className="h-10 w-10 rounded bg-muted" />
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" onClick={() => setQuickView(t)} title="Quick view">
+                      <Eye className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                   <TableCell className="font-mono text-sm">{t.code}</TableCell>
                   <TableCell className="font-medium">
@@ -273,9 +278,6 @@ const Inventory = () => {
                   <TableCell className="text-right">{formatEUR(t.value_eur)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
-                      <Button variant="ghost" size="icon" onClick={() => setQuickView(t)} title="Quick view">
-                        <Eye className="h-4 w-4" />
-                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(t)} title="Edit">
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -340,6 +342,10 @@ const Inventory = () => {
               <Input value={form.brand || ""} onChange={(e) => setForm({ ...form, brand: e.target.value })} />
             </div>
             <div className="space-y-1">
+              <Label><BiLabel en="Model" pt="Modelo" size="small" /></Label>
+              <Input value={form.model || ""} onChange={(e) => setForm({ ...form, model: e.target.value })} />
+            </div>
+            <div className="space-y-1">
               <Label><BiLabel en="Type" pt="Tipo" size="small" /></Label>
               <Select value={form.type || ""} onValueChange={(v) => setForm({ ...form, type: v })}>
                 <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
@@ -349,10 +355,6 @@ const Inventory = () => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-1">
-              <Label><BiLabel en="Model" pt="Modelo" size="small" /></Label>
-              <Input value={form.model || ""} onChange={(e) => setForm({ ...form, model: e.target.value })} />
             </div>
             <div className="space-y-1">
               <Label><BiLabel en="Serial/TAG" pt="Série/TAG" size="small" /></Label>
@@ -408,7 +410,7 @@ const Inventory = () => {
                   type="number"
                   step="0.01"
                   className="pl-7"
-                  value={form.value_eur ?? 0}
+                  value={form.value_eur ?? ""}
                   onChange={(e) => setForm({ ...form, value_eur: parseFloat(e.target.value) || 0 })}
                 />
               </div>
