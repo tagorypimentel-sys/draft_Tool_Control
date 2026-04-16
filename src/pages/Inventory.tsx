@@ -255,12 +255,22 @@ const Inventory = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <BiLabel en="Inventory" pt="Inventário" />
-        <Button onClick={openNew}>
-          <Plus />
-          <BiLabel en="Add tool" pt="Adicionar ferramenta" size="small" />
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" onClick={exportExcel} title="Export to Excel / Exportar para Excel">
+            <FileSpreadsheet />
+            <BiLabel en="Excel" pt="Excel" size="small" />
+          </Button>
+          <Button variant="outline" onClick={exportPdf} title="Export to PDF / Exportar para PDF">
+            <FileText />
+            <BiLabel en="PDF" pt="PDF" size="small" />
+          </Button>
+          <Button onClick={openNew}>
+            <Plus />
+            <BiLabel en="Add tool" pt="Adicionar ferramenta" size="small" />
+          </Button>
+        </div>
       </div>
 
       <Card className="p-4 flex gap-3 flex-wrap">
@@ -274,13 +284,35 @@ const Inventory = () => {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-[180px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All status / Todos</SelectItem>
             {STATUSES.map((s) => (
               <SelectItem key={s.v} value={s.v}>{s.en} / {s.pt}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Category / Categoria" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories / Todas</SelectItem>
+            {categoryOptions.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Type / Tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All types / Todos</SelectItem>
+            {typeOptions.map((t) => (
+              <SelectItem key={t} value={t}>{t}</SelectItem>
             ))}
           </SelectContent>
         </Select>
