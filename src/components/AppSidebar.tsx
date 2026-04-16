@@ -64,7 +64,7 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div className="flex flex-col min-w-0">
-              <span className="text-sm font-bold text-sidebar-foreground">Tool Control</span>
+              <span className="text-sm font-bold text-sidebar-foreground">KOE Draft Tool Control</span>
               <span className="text-[10px] italic text-sidebar-foreground/60">Controle de Ferramentas</span>
             </div>
           )}
