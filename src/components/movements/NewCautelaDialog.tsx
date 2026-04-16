@@ -229,11 +229,33 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
           </div>
         </div>
 
-        <div className="flex gap-2 items-center mt-4">
-          <div className="relative flex-1">
+        <div className="flex flex-wrap gap-2 items-center mt-4">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search tools / Buscar ferramentas" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{`Todas / All`}</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{`Todos / All`}</SelectItem>
+              {types.map((tp) => (
+                <SelectItem key={tp} value={tp}>{tp}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm" onClick={selectAllFiltered}>
             <BiLabel en="Select all filtered" pt="Selecionar todos filtrados" size="small" />
           </Button>
