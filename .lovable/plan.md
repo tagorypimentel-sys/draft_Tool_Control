@@ -1,2 +1,2 @@
 
-Vou explorar o estado atual antes de planejar.
+Investigar Inventory para ver como o badge de calibração está hoje.
