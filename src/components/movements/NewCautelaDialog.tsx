@@ -168,7 +168,7 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <div className="space-y-1 col-span-2 md:col-span-1">
             <Label><BiLabel en="Technician/Supervisor" pt="Técnico/Supervisor" size="small" /></Label>
             <Input
@@ -182,6 +182,10 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
                 <option key={t.id} value={t.name} />
               ))}
             </datalist>
+          </div>
+          <div className="space-y-1">
+            <Label><BiLabel en="Delivered by" pt="Responsável pela Entrega" size="small" /></Label>
+            <Input value={deliveredBy} onChange={(e) => setDeliveredBy(e.target.value)} />
           </div>
           <div className="space-y-1">
             <Label><BiLabel en="Project Number" pt="Nº Projeto" size="small" /></Label>
