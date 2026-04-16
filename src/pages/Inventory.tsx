@@ -42,6 +42,7 @@ type Tool = {
   photo_url: string | null;
   requires_calibration: number;
   requires_inspection: number;
+  next_calibration_date: string | null;
 };
 
 const STATUSES: { v: string; en: string; pt: string; cls: string }[] = [
@@ -87,6 +88,7 @@ function nextCode(): string {
 
 const Inventory = () => {
   const { version, bump } = useDb();
+  const { lang } = useLanguage();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [open, setOpen] = useState(false);
@@ -259,10 +261,19 @@ const Inventory = () => {
                   <TableCell className="font-medium">
                     {t.name}
                     {(t.requires_calibration || t.requires_inspection) ? (
-                      <div className="flex gap-1 mt-1">
-                        {t.requires_calibration ? (
-                          <span className="text-[9px] bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 px-1 rounded">CAL</span>
-                        ) : null}
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        {t.requires_calibration ? (() => {
+                          const cs = getCalibrationStatus(t.next_calibration_date);
+                          const cls = CALIBRATION_STATUS_CLASSES[cs];
+                          return (
+                            <span
+                              className={`text-[9px] px-1 rounded border ${cls.badge}`}
+                              title={getCalibrationBadgeLabel(cs, lang)}
+                            >
+                              CAL
+                            </span>
+                          );
+                        })() : null}
                         {t.requires_inspection ? (
                           <span className="text-[9px] bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 px-1 rounded">INSP</span>
                         ) : null}
@@ -273,7 +284,11 @@ const Inventory = () => {
                   <TableCell>{t.category || "—"}</TableCell>
                   <TableCell>{t.type || "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{t.serial_tag || "—"}</TableCell>
-                  <TableCell>{statusBadge(t.status)}</TableCell>
+                  <TableCell>
+                    {t.requires_calibration && ["red", "never"].includes(getCalibrationStatus(t.next_calibration_date))
+                      ? statusBadge("calibration")
+                      : statusBadge(t.status)}
+                  </TableCell>
                   <TableCell className="text-right">
                     {t.quantity}
                     {t.quantity_out_of_service > 0 && (
