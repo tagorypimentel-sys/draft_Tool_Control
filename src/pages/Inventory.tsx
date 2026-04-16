@@ -351,6 +351,10 @@ const Inventory = () => {
               </Select>
             </div>
             <div className="space-y-1">
+              <Label><BiLabel en="Model" pt="Modelo" size="small" /></Label>
+              <Input value={form.model || ""} onChange={(e) => setForm({ ...form, model: e.target.value })} />
+            </div>
+            <div className="space-y-1">
               <Label><BiLabel en="Serial/TAG" pt="Série/TAG" size="small" /></Label>
               <Input value={form.serial_tag || ""} onChange={(e) => setForm({ ...form, serial_tag: e.target.value })} />
             </div>
