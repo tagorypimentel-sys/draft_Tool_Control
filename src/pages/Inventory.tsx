@@ -94,6 +94,8 @@ const Inventory = () => {
   const { lang } = useLanguage();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<Tool>>(empty);
   const [editId, setEditId] = useState<string | null>(null);
@@ -108,14 +110,78 @@ const Inventory = () => {
     return all<Tool>("SELECT * FROM tools ORDER BY created_at DESC");
   }, [version]);
 
+  const categoryOptions = useMemo(
+    () => Array.from(new Set(tools.map((t) => t.category).filter((c): c is string => !!c))).sort(),
+    [tools]
+  );
+  const typeOptions = useMemo(
+    () => Array.from(new Set(tools.map((t) => t.type).filter((c): c is string => !!c))).sort(),
+    [tools]
+  );
+
   const filtered = tools.filter((t) => {
     const matchSearch =
       !search ||
       t.name.toLowerCase().includes(search.toLowerCase()) ||
       t.code.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || t.status === statusFilter;
-    return matchSearch && matchStatus;
+    const matchCategory = categoryFilter === "all" || t.category === categoryFilter;
+    const matchType = typeFilter === "all" || t.type === typeFilter;
+    return matchSearch && matchStatus && matchCategory && matchType;
   });
+
+  const exportRows = () =>
+    filtered.map((t) => ({
+      Code: t.code,
+      Name: t.name,
+      Brand: t.brand || "",
+      Model: t.model || "",
+      Category: t.category || "",
+      Type: t.type || "",
+      "Serial/TAG": t.serial_tag || "",
+      Status: t.status,
+      Quantity: t.quantity,
+      "Out of service": t.quantity_out_of_service,
+      "Value (EUR)": t.value_eur ?? 0,
+      Location: t.location || "",
+      Notes: t.notes || "",
+    }));
+
+  const exportExcel = () => {
+    const rows = exportRows();
+    if (!rows.length) {
+      toast.error("No data to export / Sem dados para exportar");
+      return;
+    }
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+    XLSX.writeFile(wb, `inventory_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success("Excel exported / Excel exportado");
+  };
+
+  const exportPdf = () => {
+    const rows = exportRows();
+    if (!rows.length) {
+      toast.error("No data to export / Sem dados para exportar");
+      return;
+    }
+    const doc = new jsPDF({ orientation: "landscape" });
+    doc.setFontSize(14);
+    doc.text("Inventory / Inventário", 14, 14);
+    doc.setFontSize(9);
+    doc.text(new Date().toLocaleString(), 14, 20);
+    const headers = Object.keys(rows[0]);
+    autoTable(doc, {
+      head: [headers],
+      body: rows.map((r) => headers.map((h) => String((r as Record<string, unknown>)[h] ?? ""))),
+      startY: 24,
+      styles: { fontSize: 7 },
+      headStyles: { fillColor: [37, 99, 235] },
+    });
+    doc.save(`inventory_${new Date().toISOString().slice(0, 10)}.pdf`);
+    toast.success("PDF exported / PDF exportado");
+  };
 
   const openNew = () => {
     setEditId(null);
