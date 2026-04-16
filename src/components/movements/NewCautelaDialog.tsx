@@ -57,7 +57,7 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
            AND quantity > 0
            AND (
              requires_calibration = 0
-             OR (requires_calibration = 1 AND next_calibration_date > date('now', '+30 days'))
+             OR (requires_calibration = 1 AND next_calibration_date IS NOT NULL AND next_calibration_date > date('now', '+30 days'))
            )
          ORDER BY name`
       )
