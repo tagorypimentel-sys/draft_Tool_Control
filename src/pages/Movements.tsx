@@ -42,6 +42,22 @@ const Movements = () => {
   const [detailsId, setDetailsId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("active");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+
+  const categories = useMemo(() => {
+    void version;
+    return all<{ category: string }>(
+      "SELECT DISTINCT category FROM tools WHERE category IS NOT NULL AND category != '' ORDER BY category"
+    ).map((r) => r.category);
+  }, [version]);
+
+  const types = useMemo(() => {
+    void version;
+    return all<{ type: string }>(
+      "SELECT DISTINCT type FROM tools WHERE type IS NOT NULL AND type != '' ORDER BY type"
+    ).map((r) => r.type);
+  }, [version]);
 
   const overdueDays = useMemo(() => {
     void version;
