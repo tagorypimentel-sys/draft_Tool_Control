@@ -15,7 +15,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Search, Upload, X, Eye, Copy } from "lucide-react";
+import { Plus, Pencil, Search, Upload, X, Eye, Copy, FileSpreadsheet, FileText } from "lucide-react";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { all, run, uid } from "@/lib/db";
 import { useDb } from "@/hooks/useDb";
 import { formatEUR } from "@/lib/format";
@@ -91,6 +94,8 @@ const Inventory = () => {
   const { lang } = useLanguage();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<Tool>>(empty);
   const [editId, setEditId] = useState<string | null>(null);
@@ -105,14 +110,78 @@ const Inventory = () => {
     return all<Tool>("SELECT * FROM tools ORDER BY created_at DESC");
   }, [version]);
 
+  const categoryOptions = useMemo(
+    () => Array.from(new Set(tools.map((t) => t.category).filter((c): c is string => !!c))).sort(),
+    [tools]
+  );
+  const typeOptions = useMemo(
+    () => Array.from(new Set(tools.map((t) => t.type).filter((c): c is string => !!c))).sort(),
+    [tools]
+  );
+
   const filtered = tools.filter((t) => {
     const matchSearch =
       !search ||
       t.name.toLowerCase().includes(search.toLowerCase()) ||
       t.code.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || t.status === statusFilter;
-    return matchSearch && matchStatus;
+    const matchCategory = categoryFilter === "all" || t.category === categoryFilter;
+    const matchType = typeFilter === "all" || t.type === typeFilter;
+    return matchSearch && matchStatus && matchCategory && matchType;
   });
+
+  const exportRows = () =>
+    filtered.map((t) => ({
+      Code: t.code,
+      Name: t.name,
+      Brand: t.brand || "",
+      Model: t.model || "",
+      Category: t.category || "",
+      Type: t.type || "",
+      "Serial/TAG": t.serial_tag || "",
+      Status: t.status,
+      Quantity: t.quantity,
+      "Out of service": t.quantity_out_of_service,
+      "Value (EUR)": t.value_eur ?? 0,
+      Location: t.location || "",
+      Notes: t.notes || "",
+    }));
+
+  const exportExcel = () => {
+    const rows = exportRows();
+    if (!rows.length) {
+      toast.error("No data to export / Sem dados para exportar");
+      return;
+    }
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+    XLSX.writeFile(wb, `inventory_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success("Excel exported / Excel exportado");
+  };
+
+  const exportPdf = () => {
+    const rows = exportRows();
+    if (!rows.length) {
+      toast.error("No data to export / Sem dados para exportar");
+      return;
+    }
+    const doc = new jsPDF({ orientation: "landscape" });
+    doc.setFontSize(14);
+    doc.text("Inventory / Inventário", 14, 14);
+    doc.setFontSize(9);
+    doc.text(new Date().toLocaleString(), 14, 20);
+    const headers = Object.keys(rows[0]);
+    autoTable(doc, {
+      head: [headers],
+      body: rows.map((r) => headers.map((h) => String((r as Record<string, unknown>)[h] ?? ""))),
+      startY: 24,
+      styles: { fontSize: 7 },
+      headStyles: { fillColor: [37, 99, 235] },
+    });
+    doc.save(`inventory_${new Date().toISOString().slice(0, 10)}.pdf`);
+    toast.success("PDF exported / PDF exportado");
+  };
 
   const openNew = () => {
     setEditId(null);
@@ -186,12 +255,22 @@ const Inventory = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <BiLabel en="Inventory" pt="Inventário" />
-        <Button onClick={openNew}>
-          <Plus />
-          <BiLabel en="Add tool" pt="Adicionar ferramenta" size="small" />
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" onClick={exportExcel} title="Export to Excel / Exportar para Excel">
+            <FileSpreadsheet />
+            <BiLabel en="Excel" pt="Excel" size="small" />
+          </Button>
+          <Button variant="outline" onClick={exportPdf} title="Export to PDF / Exportar para PDF">
+            <FileText />
+            <BiLabel en="PDF" pt="PDF" size="small" />
+          </Button>
+          <Button onClick={openNew}>
+            <Plus />
+            <BiLabel en="Add tool" pt="Adicionar ferramenta" size="small" />
+          </Button>
+        </div>
       </div>
 
       <Card className="p-4 flex gap-3 flex-wrap">
@@ -205,13 +284,35 @@ const Inventory = () => {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-[180px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All status / Todos</SelectItem>
             {STATUSES.map((s) => (
               <SelectItem key={s.v} value={s.v}>{s.en} / {s.pt}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Category / Categoria" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories / Todas</SelectItem>
+            {categoryOptions.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Type / Tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All types / Todos</SelectItem>
+            {typeOptions.map((t) => (
+              <SelectItem key={t} value={t}>{t}</SelectItem>
             ))}
           </SelectContent>
         </Select>
