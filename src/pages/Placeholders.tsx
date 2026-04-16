@@ -1,9 +1,15 @@
-const Placeholder = ({ title }: { title: string }) => (
-  <div className="space-y-2">
-    <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-    <p className="text-muted-foreground">Esta seção será implementada na próxima fase.</p>
+import { BiLabel } from "@/components/BiLabel";
+import { Card } from "@/components/ui/card";
+
+const Placeholder = ({ en, pt }: { en: string; pt: string }) => (
+  <div className="space-y-4">
+    <BiLabel en={en} pt={pt} />
+    <Card className="p-10 flex items-center justify-center">
+      <BiLabel en="Coming soon" pt="Em breve" className="items-center" />
+    </Card>
   </div>
 );
 
-export const Emprestimos = () => <Placeholder title="Empréstimos" />;
-export const Colaboradores = () => <Placeholder title="Colaboradores" />;
+export const Movements = () => <Placeholder en="Movements" pt="Movimentações" />;
+export const Calibration = () => <Placeholder en="Calibration" pt="Calibração" />;
+export const Reports = () => <Placeholder en="Reports" pt="Relatórios" />;
