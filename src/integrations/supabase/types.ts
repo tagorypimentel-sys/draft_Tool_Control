@@ -14,16 +14,273 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categorias: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      colaboradores: {
+        Row: {
+          contato: string | null
+          created_at: string
+          id: string
+          nome: string
+          setor: string | null
+          updated_at: string
+        }
+        Insert: {
+          contato?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          setor?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contato?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          setor?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      emprestimos: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          data_devolucao: string | null
+          data_prevista: string | null
+          data_retirada: string
+          ferramenta_id: string
+          id: string
+          observacoes: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          data_devolucao?: string | null
+          data_prevista?: string | null
+          data_retirada?: string
+          ferramenta_id: string
+          id?: string
+          observacoes?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          data_devolucao?: string | null
+          data_prevista?: string | null
+          data_retirada?: string
+          ferramenta_id?: string
+          id?: string
+          observacoes?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emprestimos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emprestimos_ferramenta_id_fkey"
+            columns: ["ferramenta_id"]
+            isOneToOne: false
+            referencedRelation: "ferramentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ferramentas: {
+        Row: {
+          categoria_id: string | null
+          codigo: string
+          created_at: string
+          foto_url: string | null
+          id: string
+          local_id: string | null
+          nome: string
+          observacoes: string | null
+          status: Database["public"]["Enums"]["ferramenta_status"]
+          updated_at: string
+        }
+        Insert: {
+          categoria_id?: string | null
+          codigo: string
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          local_id?: string | null
+          nome: string
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["ferramenta_status"]
+          updated_at?: string
+        }
+        Update: {
+          categoria_id?: string | null
+          codigo?: string
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          local_id?: string | null
+          nome?: string
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["ferramenta_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ferramentas_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ferramentas_local_id_fkey"
+            columns: ["local_id"]
+            isOneToOne: false
+            referencedRelation: "locais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      locais: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      manutencoes: {
+        Row: {
+          created_at: string
+          custo: number | null
+          data_fim: string | null
+          data_inicio: string
+          descricao: string | null
+          ferramenta_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          custo?: number | null
+          data_fim?: string | null
+          data_inicio?: string
+          descricao?: string | null
+          ferramenta_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          custo?: number | null
+          data_fim?: string | null
+          data_inicio?: string
+          descricao?: string | null
+          ferramenta_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manutencoes_ferramenta_id_fkey"
+            columns: ["ferramenta_id"]
+            isOneToOne: false
+            referencedRelation: "ferramentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nome: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          nome?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "operador"
+      ferramenta_status: "disponivel" | "emprestada" | "manutencao" | "baixada"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +407,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "operador"],
+      ferramenta_status: ["disponivel", "emprestada", "manutencao", "baixada"],
+    },
   },
 } as const
