@@ -410,7 +410,7 @@ const Inventory = () => {
                   type="number"
                   step="0.01"
                   className="pl-7"
-                  value={form.value_eur ?? 0}
+                  value={form.value_eur ?? ""}
                   onChange={(e) => setForm({ ...form, value_eur: parseFloat(e.target.value) || 0 })}
                 />
               </div>
