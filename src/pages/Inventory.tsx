@@ -342,6 +342,10 @@ const Inventory = () => {
               <Input value={form.brand || ""} onChange={(e) => setForm({ ...form, brand: e.target.value })} />
             </div>
             <div className="space-y-1">
+              <Label><BiLabel en="Model" pt="Modelo" size="small" /></Label>
+              <Input value={form.model || ""} onChange={(e) => setForm({ ...form, model: e.target.value })} />
+            </div>
+            <div className="space-y-1">
               <Label><BiLabel en="Type" pt="Tipo" size="small" /></Label>
               <Select value={form.type || ""} onValueChange={(v) => setForm({ ...form, type: v })}>
                 <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
@@ -351,10 +355,6 @@ const Inventory = () => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-1">
-              <Label><BiLabel en="Model" pt="Modelo" size="small" /></Label>
-              <Input value={form.model || ""} onChange={(e) => setForm({ ...form, model: e.target.value })} />
             </div>
             <div className="space-y-1">
               <Label><BiLabel en="Serial/TAG" pt="Série/TAG" size="small" /></Label>
