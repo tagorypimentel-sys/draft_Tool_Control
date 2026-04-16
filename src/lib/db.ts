@@ -81,6 +81,9 @@ const ALTERS = [
   "ALTER TABLE tools ADD COLUMN serial_tag TEXT",
   "ALTER TABLE tools ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1",
   "ALTER TABLE tools ADD COLUMN quantity_out_of_service INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE tools ADD COLUMN photo_url TEXT",
+  "ALTER TABLE tools ADD COLUMN requires_calibration INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE tools ADD COLUMN requires_inspection INTEGER NOT NULL DEFAULT 0",
 ];
 
 function applyAlters(db: Database) {
