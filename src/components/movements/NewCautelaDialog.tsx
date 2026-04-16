@@ -129,9 +129,9 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
       });
     }
     ops.push({
-      sql: `INSERT INTO cautelas (id, number, project, client, ship, technician_id, date_out, status)
-            VALUES (?,?,?,?,?,?,?, 'open')`,
-      params: [cautelaId, number, project.trim(), client || null, ship || null, techId, now],
+      sql: `INSERT INTO cautelas (id, number, project, client, ship, technician_id, date_out, status, delivered_by)
+            VALUES (?,?,?,?,?,?,?, 'open', ?)`,
+      params: [cautelaId, number, project.trim(), client || null, ship || null, techId, now, deliveredBy.trim() || null],
     });
     for (const t of items) {
       const qty = selected[t.id];
