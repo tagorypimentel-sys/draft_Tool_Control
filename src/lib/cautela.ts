@@ -16,6 +16,7 @@ export type CautelaRow = {
   date_in: string | null;
   status: string;
   notes: string | null;
+  delivered_by: string | null;
 };
 
 export type CautelaItemFull = {
