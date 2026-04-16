@@ -141,7 +141,24 @@ const Movements = () => {
             <SelectItem value="all">All / Todas</SelectItem>
           </SelectContent>
         </Select>
-      </Card>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Category / Categoria" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories / Todas Categorias</SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Type / Tipo" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types / Todos Tipos</SelectItem>
+            {types.map((t) => (
+              <SelectItem key={t} value={t}>{t}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
       <Card>
         <Table>
