@@ -55,6 +55,21 @@ export default {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
         },
+        "cal-green": {
+          DEFAULT: "hsl(var(--cal-green))",
+          bg: "hsl(var(--cal-green-bg))",
+          fg: "hsl(var(--cal-green-fg))",
+        },
+        "cal-yellow": {
+          DEFAULT: "hsl(var(--cal-yellow))",
+          bg: "hsl(var(--cal-yellow-bg))",
+          fg: "hsl(var(--cal-yellow-fg))",
+        },
+        "cal-red": {
+          DEFAULT: "hsl(var(--cal-red))",
+          bg: "hsl(var(--cal-red-bg))",
+          fg: "hsl(var(--cal-red-fg))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
