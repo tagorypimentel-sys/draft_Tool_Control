@@ -1,11 +1,10 @@
-import { LayoutDashboard, Wrench, ClipboardList, Users, Tags, MapPin, LogOut } from "lucide-react";
+import { Wrench, ArrowLeftRight, Crosshair, BarChart2, UserCheck, Settings } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -13,29 +12,33 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
+import { BiLabel } from "@/components/BiLabel";
+import { Badge } from "@/components/ui/badge";
+import { useDb } from "@/hooks/useDb";
+import { all } from "@/lib/db";
 
 const items = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Ferramentas", url: "/ferramentas", icon: Wrench },
-  { title: "Empréstimos", url: "/emprestimos", icon: ClipboardList },
-  { title: "Colaboradores", url: "/colaboradores", icon: Users },
-];
-
-const cadastros = [
-  { title: "Categorias", url: "/categorias", icon: Tags },
-  { title: "Locais", url: "/locais", icon: MapPin },
+  { en: "Inventory", pt: "Inventário", url: "/", icon: Wrench, end: true },
+  { en: "Movements", pt: "Movimentações", url: "/movements", icon: ArrowLeftRight, badge: true },
+  { en: "Calibration", pt: "Calibração", url: "/calibration", icon: Crosshair },
+  { en: "Reports", pt: "Relatórios", url: "/reports", icon: BarChart2 },
+  { en: "Technician Register", pt: "Cadastro de Técnicos", url: "/technicians", icon: UserCheck },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { signOut, user } = useAuth();
+  const { ready, version } = useDb();
 
-  const isActive = (path: string) =>
-    path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
+  const pendingCount = ready
+    ? (all<{ c: number }>("SELECT COUNT(*) as c FROM movements WHERE date_in IS NULL")[0]?.c ?? 0)
+    : 0;
+  // version ref to refresh
+  void version;
+
+  const isActive = (path: string, end?: boolean) =>
+    end ? location.pathname === path : location.pathname.startsWith(path);
 
   return (
     <Sidebar collapsible="icon">
@@ -46,53 +49,67 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div className="flex flex-col min-w-0">
-              <span className="text-sm font-semibold text-sidebar-foreground truncate">FerraControl</span>
-              <span className="text-xs text-sidebar-foreground/60 truncate">{user?.email}</span>
+              <span className="text-sm font-bold text-sidebar-foreground">Tool Control</span>
+              <span className="text-[10px] italic text-sidebar-foreground/60">Controle de Ferramentas</span>
             </div>
           )}
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url} end={item.url === "/"}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Cadastros</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {cadastros.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {items.map((item) => {
+                const active = isActive(item.url, item.end);
+                return (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton
+                      asChild
+                      className={
+                        active
+                          ? "bg-blue-50 text-blue-700 hover:bg-blue-50 hover:text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                          : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                      }
+                    >
+                      <NavLink to={item.url} end={item.end} className="h-auto py-2">
+                        <item.icon className={active ? "text-blue-700 dark:text-blue-300" : ""} />
+                        {!collapsed && (
+                          <>
+                            <BiLabel en={item.en} pt={item.pt} size="small" className="flex-1" />
+                            {item.badge && pendingCount > 0 && (
+                              <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-[10px]">
+                                {pendingCount}
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border p-2">
-        <Button variant="ghost" size="sm" onClick={signOut} className="justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-          <LogOut className="h-4 w-4" />
-          {!collapsed && <span>Sair</span>}
-        </Button>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              className={
+                isActive("/settings")
+                  ? "bg-blue-50 text-blue-700 hover:bg-blue-50 hover:text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                  : "hover:bg-slate-100 dark:hover:bg-slate-800"
+              }
+            >
+              <NavLink to="/settings" className="h-auto py-2">
+                <Settings />
+                {!collapsed && <BiLabel en="Settings" pt="Configurações" size="small" />}
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );
