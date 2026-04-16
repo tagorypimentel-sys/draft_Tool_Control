@@ -25,23 +25,30 @@ type Tool = {
   id: string;
   code: string;
   name: string;
+  brand: string | null;
+  type: string | null;
+  serial_tag: string | null;
   category: string | null;
   location: string | null;
   status: string;
   acquisition_date: string | null;
   value_eur: number | null;
+  quantity: number;
+  quantity_out_of_service: number;
   notes: string | null;
 };
 
 const STATUSES: { v: string; en: string; pt: string; cls: string }[] = [
   { v: "available", en: "Available", pt: "Disponível", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" },
   { v: "in_use", en: "In use", pt: "Em uso", cls: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300" },
+  { v: "out", en: "Out", pt: "Saída", cls: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300" },
   { v: "maintenance", en: "Maintenance", pt: "Manutenção", cls: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300" },
   { v: "calibration", en: "Calibration", pt: "Calibração", cls: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300" },
+  { v: "out_of_service", en: "Out of service", pt: "Fora de uso", cls: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300" },
   { v: "retired", en: "Retired", pt: "Baixada", cls: "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300" },
 ];
 
-const empty: Partial<Tool> = { code: "", name: "", category: "", location: "", status: "available", value_eur: 0, notes: "" };
+const empty: Partial<Tool> = { code: "", name: "", brand: "", type: "", serial_tag: "", category: "", location: "", status: "available", value_eur: 0, quantity: 1, notes: "" };
 
 const Inventory = () => {
   const { version, bump } = useDb();
@@ -83,16 +90,21 @@ const Inventory = () => {
     }
     if (editId) {
       run(
-        `UPDATE tools SET code=?, name=?, category=?, location=?, status=?, acquisition_date=?, value_eur=?, notes=? WHERE id=?`,
-        [form.code, form.name, form.category || null, form.location || null, form.status || "available",
-         form.acquisition_date || null, Number(form.value_eur) || 0, form.notes || null, editId]
+        `UPDATE tools SET code=?, name=?, brand=?, type=?, serial_tag=?, category=?, location=?, status=?, acquisition_date=?, value_eur=?, quantity=?, notes=? WHERE id=?`,
+        [form.code, form.name, form.brand || null, form.type || null, form.serial_tag || null,
+         form.category || null, form.location || null, form.status || "available",
+         form.acquisition_date || null, Number(form.value_eur) || 0, Number(form.quantity) || 1,
+         form.notes || null, editId]
       );
       toast.success("Tool updated / Ferramenta atualizada");
     } else {
       run(
-        `INSERT INTO tools (id, code, name, category, location, status, acquisition_date, value_eur, notes) VALUES (?,?,?,?,?,?,?,?,?)`,
-        [uid(), form.code, form.name, form.category || null, form.location || null, form.status || "available",
-         form.acquisition_date || null, Number(form.value_eur) || 0, form.notes || null]
+        `INSERT INTO tools (id, code, name, brand, type, serial_tag, category, location, status, acquisition_date, value_eur, quantity, notes)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [uid(), form.code, form.name, form.brand || null, form.type || null, form.serial_tag || null,
+         form.category || null, form.location || null, form.status || "available",
+         form.acquisition_date || null, Number(form.value_eur) || 0, Number(form.quantity) || 1,
+         form.notes || null]
       );
       toast.success("Tool added / Ferramenta adicionada");
     }
