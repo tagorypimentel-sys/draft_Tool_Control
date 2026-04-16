@@ -61,6 +61,7 @@ export function ReturnDialog({ open, onOpenChange, onReturned, initialCautelaId 
   const [filterNumber, setFilterNumber] = useState("");
   const [items, setItems] = useState<PendingItem[]>([]);
   const [state, setState] = useState<Record<string, RowState>>({});
+  const [confirmFullCautelaId, setConfirmFullCautelaId] = useState<string | null>(null);
 
   const loadItems = () => {
     let sql = `
