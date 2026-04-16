@@ -17,7 +17,7 @@ const Settings = () => {
   const exportDb = () => {
     const bytes = exportDbBytes();
     if (!bytes) return;
-    const blob = new Blob([bytes], { type: "application/x-sqlite3" });
+    const blob = new Blob([bytes as BlobPart], { type: "application/x-sqlite3" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
