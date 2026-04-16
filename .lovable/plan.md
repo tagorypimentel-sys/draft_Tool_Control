@@ -1,87 +1,184 @@
 
 
-## Reformulação: Tool Control System v2 (Bilíngue EN/PT)
+## Menu Movimentações — Plano de Implementação
 
-Vou reestruturar o app atual para atender ao novo prompt. Mudanças principais: tipografia bilíngue obrigatória em toda a UI, nova estrutura de menu, moeda em Euro, dark mode, e mudança de backend (de Lovable Cloud para sql.js offline).
+Vou implementar o menu **Movements / Movimentações** completo conforme as 10 regras descritas, mantendo o padrão bilíngue (BiLabel), Euro e sql.js já estabelecidos.
 
-### Decisão importante de backend
+### 1. Mudanças no schema (sql.js)
 
-O app atual usa **Lovable Cloud (Supabase)** com autenticação. O novo prompt pede **sql.js (SQLite no IndexedDB), offline, sem auth, usuário único master**. Isso é uma reescrita arquitetural grande.
+O schema atual de `tools` e `movements` é insuficiente. Vou estender via `ALTER TABLE` (idempotente, preservando dados existentes):
 
-Vou assumir que você quer seguir o novo prompt — removendo auth e migrando para sql.js. Se preferir manter Lovable Cloud (recomendado: dados não se perdem ao limpar o navegador), me avise antes de aprovar.
+**`tools` — novos campos:**
+- `brand` TEXT — Marca
+- `type` TEXT — Tipo
+- `serial_tag` TEXT — Nº Série / TAG
+- `quantity` INTEGER DEFAULT 1 — quantidade total disponível em estoque
+- (mantém `code`, `name`, `category`, `value_eur`, `status`, etc.)
 
-### Componente reutilizável central
+Status passa a aceitar: `available`, `out`, `out_of_service` (Fora de Uso), `maintenance`, `retired`.
 
-`<BiLabel en="Name" pt="Nome" size="default | table | small" />`
-- default: EN 15px/700 + PT 11px italic muted
-- table: EN 13px/700 + PT 9px italic muted
-- Usado em TUDO: sidebar, headers de tabela, labels de form, botões, placeholders, títulos de modal, badges, tooltips, estados vazios
-
-### Navegação (sidebar)
-
-| # | EN / PT | Ícone | Rota |
-|---|---|---|---|
-| 1 | Inventory / Inventário | Wrench | `/` |
-| 2 | Movements / Movimentações (badge vermelho se pendentes) | ArrowLeftRight | `/movements` |
-| 3 | Calibration / Calibração | Crosshair | `/calibration` |
-| 4 | Reports / Relatórios | BarChart2 | `/reports` |
-| 5 | Technician Register / Cadastro de Técnicos | UserCheck | `/technicians` |
-| Footer | Settings / Configurações | Settings | `/settings` |
-
-Estado ativo: `bg-blue-50 text-blue-700` (icon também). Hover: `bg-slate-100` / `dark:bg-slate-800`.
-
-### Modelo de dados (sql.js)
-
-```text
-tools          (id, code, name, category, location, status,
-                acquisition_date, value_eur, notes)
-                — status: available | in_use | maintenance | calibration | retired
-                — NUNCA deletadas, só mudam status
-movements      (id, tool_id, technician_id, type, date_out,
-                date_expected, date_in, notes)
-                — type: checkout | return
-calibrations   (id, tool_id, last_date, next_date, certificate, notes)
-technicians    (id, name, department, contact)
-settings       (key, value) — tema, etc.
+**Nova tabela `cautelas`** (cabeçalho da saída):
+```
+id TEXT PK
+number TEXT UNIQUE          -- PROJETO_01, PROJETO_02...
+project TEXT NOT NULL
+client TEXT
+ship TEXT
+technician_id TEXT NOT NULL
+date_out TEXT NOT NULL
+date_in TEXT                -- preenchido quando 100% devolvido
+status TEXT                 -- open | partial | closed
+notes TEXT
+created_at TEXT
 ```
 
-Persistência: sql.js em memória + serialização periódica para IndexedDB via `idb-keyval`. Hook `useDb()` provê instância e helpers tipados. Sem auth, sem RLS.
+**Nova tabela `cautela_items`** (linhas de cada cautela):
+```
+id TEXT PK
+cautela_id TEXT NOT NULL
+tool_id TEXT NOT NULL
+qty_out INTEGER NOT NULL
+qty_returned INTEGER DEFAULT 0
+qty_out_of_service INTEGER DEFAULT 0
+condition_notes TEXT        -- observações quando devolvido fora de uso
+unit_value_eur REAL
+```
 
-### Telas
+A tabela antiga `movements` fica obsoleta (não usada na nova UI, mas preservada para não quebrar nada).
 
-1. **Inventory** — tabela de ferramentas com busca/filtro por categoria/status/local. Colunas bilíngues (Code/Código, Name/Nome, Category/Categoria, Location/Local, Status, Value/Valor em €, Actions/Ações). Botão "Add tool / Adicionar ferramenta". Ações por linha: Edit, Change status (NÃO delete).
-2. **Movements** — registrar saída/devolução, lista de movimentos ativos, destaque para atrasados. Badge no menu = nº de movimentos sem devolução.
-3. **Calibration** — lista de ferramentas com data de calibração, próximas/vencidas em destaque, registrar nova calibração.
-4. **Reports** — cards de totais + gráficos básicos (recharts) + exportação CSV.
-5. **Technicians** — CRUD de técnicos.
-6. **Settings** — toggle dark mode, info do app, exportar/importar backup do banco (.sqlite).
+### 2. Numeração de cautela `PROJETO_NN`
 
-### Moeda Euro
+Função `generateCautelaNumber(project)`:
+1. Normaliza `project` (uppercase, sem espaços/acentos).
+2. Conta cautelas existentes com mesmo prefixo: `SELECT COUNT(*) FROM cautelas WHERE number LIKE 'PROJETO_%'`.
+3. Retorna `PROJETO_` + `String(count+1).padStart(2,'0')` → ex: `OFFSHORE01_03`.
 
-Helper `formatEUR(value)` → `€ 1.250,00` (formato europeu, `Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })`). Input com prefixo `€`.
+### 3. Tela `Movements.tsx` — estrutura
 
-### Dark mode
+Tabs ou seções:
 
-Toggle no header (Sun/Moon). Persistido em `localStorage` + tabela settings. Tailwind `dark:` em todo o design system. Variáveis HSL ajustadas em `index.css`.
+**A) Header com 2 botões grandes:**
+- `New Checkout / Nova Saída (Cautela)` — abre dialog de criação
+- `Return Items / Devolver Material` — abre dialog de devolução
 
-### Pilha técnica
+**B) Lista de cautelas abertas/parciais** (tabela bilíngue):
+| Number/Nº | Project/Projeto | Technician/Técnico | Client/Cliente | Ship/Navio | Date Out/Saída | Status | Actions/Ações |
 
-- Mantém: React + Vite + Tailwind + shadcn/ui + Lucide + react-router + react-query + sonner
-- Adiciona: `sql.js`, `idb-keyval`, `date-fns`, `recharts` (já presente)
-- Remove: Supabase client, AuthProvider, páginas Auth, todas as queries para `supabase.from(...)`, migrations
-- A Lovable Cloud continua provisionada mas fica sem uso (ou podemos desabilitar nas configurações depois)
+Ações por linha: View/Ver detalhes, Print/Imprimir, Export PDF, Export Excel, Return/Devolver.
 
-### Entrega em fases
+**C) Filtros:** por técnico, por projeto, por número de cautela, status.
 
-1. **Fase A (esta entrega)** — `<BiLabel>`, design system + dark mode, sql.js setup, nova sidebar bilíngue, Inventory completo, Technicians completo, Settings (tema + backup).
-2. **Fase B** — Movements (saída/devolução, badge de pendentes, atrasados).
-3. **Fase C** — Calibration + Reports (gráficos + CSV).
+### 4. Dialog "Nova Saída (Cautela)"
 
-Começo pela Fase A após sua aprovação.
+Campos (todos com `<BiLabel>`):
+- Technician/Supervisor (select de `technicians`)
+- Project Number / Nº Projeto (input texto)
+- Client / Cliente (input)
+- Ship / Navio (input)
+- Lista de ferramentas disponíveis (`status='available' AND quantity > 0`):
+  - Tabela com checkbox + input de quantidade por linha
+  - Busca rápida no topo
+  - Botão "Select All Filtered / Selecionar todos filtrados"
+  - Colunas: ☐, Code, Name, Brand, Category, Type, Serial/TAG, Available Qty, Qty to take, Unit Value €
+- Footer: total de itens selecionados + valor total €
 
-### Confirmações antes de começar
+Ao salvar:
+- Gera número da cautela.
+- Insere em `cautelas` (status `open`).
+- Insere linhas em `cautela_items` com `qty_out`.
+- Para cada `tool_id`, decrementa `tools.quantity` e, se zerar, marca `status='out'`. (Se quantity > 1 e ainda sobra, mantém `available`.)
+- Toast de sucesso + opções imediatas: Print, Export PDF, Export Excel.
 
-1. **Backend**: confirma trocar Lovable Cloud (Supabase com auth) por sql.js offline (sem auth, dados ficam só no navegador do usuário)?
-2. **Dados existentes**: se já cadastrou algo nas tabelas atuais, será descartado. Ok?
-3. **Escopo Fase A**: ok começar pelas telas Inventory + Technicians + Settings, deixando Movements/Calibration/Reports para fases seguintes? Ou prefere tudo de uma vez?
+### 5. Dialog "Devolver Material"
+
+- Filtros no topo: técnico, projeto, número da cautela.
+- Lista de cautelas filtradas com seus itens pendentes (`qty_out - qty_returned - qty_out_of_service > 0`).
+- Para cada item: input "Qty returning" + radio "In use condition / Em condição de uso" vs "Out of service / Fora de uso".
+- Se "out of service": campo de observações obrigatório.
+- Devolução parcial permitida.
+
+Ao confirmar:
+- Atualiza `qty_returned` (+ se em uso) e devolve à `tools.quantity`, status volta a `available`.
+- Ou `qty_out_of_service` (+ se fora de uso) e cria/atualiza linha em `tools` com novo status `out_of_service` (ou apenas marca o item; ferramenta volta ao estoque com status `out_of_service`). **Decisão**: a quantidade fora de uso volta ao estoque mas como ferramentas separadas com status `out_of_service`. Para simplificar: mantemos a ferramenta original e adicionamos um campo `quantity_out_of_service` em `tools`.
+- Recalcula status da cautela: se tudo retornou → `closed` + `date_in`. Senão → `partial`.
+
+**Refinamento (mais simples)**: adiciono em `tools` os campos:
+- `quantity` (total disponível)
+- `quantity_out_of_service` (separado)
+Quando "in use" volta → `quantity++`. Quando "out of service" volta → `quantity_out_of_service++` (não disponível para nova cautela).
+
+### 6. Exportação PDF
+
+Biblioteca: **`jspdf` + `jspdf-autotable`** (instalar).
+
+Função `exportCautelaPDF(cautelaId)`:
+- Cabeçalho: logo/título + número da cautela + data + projeto + cliente + navio + técnico.
+- Tabela com colunas: **Name, Brand, Category, Type, Serial/TAG, Value (€), Qty, Total (€)**.
+- Linha final: TOTAL GERAL €.
+- Salva como `Cautela_{number}.pdf`.
+
+### 7. Exportação Excel
+
+Biblioteca: **`xlsx`** (SheetJS — instalar).
+
+Função `exportCautelaExcel(cautelaId)`:
+- Mesmas colunas do PDF.
+- Cabeçalho com metadados da cautela.
+- Linha total.
+- Salva como `Cautela_{number}.xlsx`.
+
+### 8. Impressão
+
+Função `printCautela(cautelaId)`:
+- Abre `window.open` com HTML otimizado para impressão (CSS `@media print`).
+- Conteúdo reduzido (só campos exigidos): **Name, Brand, Serial/TAG, Value (€), Qty, Total (€)**.
+- Rodapé com 2 áreas de assinatura:
+  - "Technician/Supervisor / Técnico/Supervisor: __________"
+  - "Delivered by / Entregue por: __________"
+- `window.print()` automático.
+
+### 9. Atualização da tela `Inventory`
+
+Para os novos campos funcionarem, preciso adicionar em `Inventory.tsx`:
+- Campos no formulário: **Brand, Type, Serial/TAG, Quantity**.
+- Coluna na tabela: Brand, Serial/TAG, Qty Available.
+- Não vou refazer a tela — apenas estender o formulário e tabela existentes.
+
+### 10. Badge de pendentes na sidebar
+
+Já existe `pendingCount` baseado em `movements.date_in IS NULL`. Vou trocar a fonte para:
+```sql
+SELECT COUNT(*) FROM cautelas WHERE status IN ('open','partial')
+```
+
+### Arquivos a criar/editar
+
+**Criar:**
+- `src/pages/Movements.tsx` — tela principal
+- `src/components/movements/NewCautelaDialog.tsx`
+- `src/components/movements/ReturnDialog.tsx`
+- `src/components/movements/CautelaDetailsDialog.tsx`
+- `src/lib/cautela.ts` — geração de número, exports PDF/Excel, impressão
+
+**Editar:**
+- `src/lib/db.ts` — novas tabelas + ALTERs idempotentes para `tools`
+- `src/App.tsx` — registrar rota `/movements`
+- `src/pages/Placeholders.tsx` — remover `Movements`
+- `src/pages/Inventory.tsx` — adicionar Brand, Type, Serial/TAG, Quantity
+- `src/components/AppSidebar.tsx` — atualizar fonte do badge
+
+**Dependências novas:**
+- `jspdf`, `jspdf-autotable`, `xlsx`
+
+### Confirmações antes de implementar
+
+1. **Modelo de quantidade**: ok adicionar `quantity` (estoque) e `quantity_out_of_service` em `tools`? Ferramentas hoje funcionam como "1 unidade por linha" — o novo modelo permite múltiplas. Itens já cadastrados ganham `quantity=1` automaticamente. Confirma?
+
+2. **Numeração da cautela**: o formato `PROJETO_NN` usa o nome do projeto digitado como prefixo (ex: `OFFSHORE_01`, `OFFSHORE_02`). A numeração reinicia/incrementa por projeto (cada projeto tem sua sequência). Está correto? Ou prefere uma sequência global?
+
+3. **Fora de Uso**: ao devolver "fora de uso", a ferramenta volta ao estoque marcada como `out_of_service` (não disponível para nova cautela, visível no Inventory com status diferente). Confirma essa regra?
+
+4. **Inventory**: ok eu estender o formulário/tabela do Inventory para incluir os novos campos (Brand, Type, Serial/TAG, Quantity)? Sem isso a saída de cautela não tem o que mostrar.
+
+Aguardando aprovação para começar.
 
