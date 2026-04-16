@@ -66,7 +66,6 @@ const empty: Partial<Tool> = {
   serial_tag: "",
   category: "Tool",
   status: "available",
-  value_eur: 0,
   quantity: 1,
   notes: "",
   photo_url: "",
