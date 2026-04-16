@@ -159,6 +159,7 @@ const Movements = () => {
             ))}
           </SelectContent>
         </Select>
+      </Card>
 
       <Card>
         <Table>
