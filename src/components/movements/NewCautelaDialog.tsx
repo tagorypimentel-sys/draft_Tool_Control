@@ -45,6 +45,8 @@ export function NewCautelaDialog({ open, onOpenChange, onCreated }: Props) {
   const [client, setClient] = useState("");
   const [ship, setShip] = useState("");
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [selected, setSelected] = useState<Record<string, number>>({});
 
   useEffect(() => {
