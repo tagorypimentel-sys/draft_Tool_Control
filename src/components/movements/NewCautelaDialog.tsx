@@ -13,6 +13,7 @@ import { generateCautelaNumber } from "@/lib/cautela";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
 import { formatDateDisplay, getCalibrationStatus } from "@/lib/calibration";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Tech = { id: string; name: string };
 type Tool = {
