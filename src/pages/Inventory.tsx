@@ -15,7 +15,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Search, Upload, X } from "lucide-react";
+import { Plus, Pencil, Search, Upload, X, Eye } from "lucide-react";
 import { all, run, uid } from "@/lib/db";
 import { useDb } from "@/hooks/useDb";
 import { formatEUR } from "@/lib/format";
