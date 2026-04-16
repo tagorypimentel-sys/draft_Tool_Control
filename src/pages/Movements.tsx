@@ -42,6 +42,22 @@ const Movements = () => {
   const [detailsId, setDetailsId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("active");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+
+  const categories = useMemo(() => {
+    void version;
+    return all<{ category: string }>(
+      "SELECT DISTINCT category FROM tools WHERE category IS NOT NULL AND category != '' ORDER BY category"
+    ).map((r) => r.category);
+  }, [version]);
+
+  const types = useMemo(() => {
+    void version;
+    return all<{ type: string }>(
+      "SELECT DISTINCT type FROM tools WHERE type IS NOT NULL AND type != '' ORDER BY type"
+    ).map((r) => r.type);
+  }, [version]);
 
   const overdueDays = useMemo(() => {
     void version;
@@ -51,9 +67,16 @@ const Movements = () => {
 
   const rows = useMemo(() => {
     void version;
-    let where = "";
-    if (statusFilter === "active") where = "WHERE c.status IN ('open','partial')";
-    else if (statusFilter !== "all") where = `WHERE c.status = '${statusFilter}'`;
+    const conds: string[] = [];
+    if (statusFilter === "active") conds.push("c.status IN ('open','partial')");
+    else if (statusFilter !== "all") conds.push(`c.status = '${statusFilter}'`);
+    if (categoryFilter !== "all") {
+      conds.push(`EXISTS (SELECT 1 FROM cautela_items ci JOIN tools tl ON tl.id = ci.tool_id WHERE ci.cautela_id = c.id AND tl.category = '${categoryFilter.replace(/'/g, "''")}')`);
+    }
+    if (typeFilter !== "all") {
+      conds.push(`EXISTS (SELECT 1 FROM cautela_items ci JOIN tools tl ON tl.id = ci.tool_id WHERE ci.cautela_id = c.id AND tl.type = '${typeFilter.replace(/'/g, "''")}')`);
+    }
+    const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
     return all<Row>(
       `SELECT c.*, t.name as technician_name
        FROM cautelas c
@@ -61,7 +84,7 @@ const Movements = () => {
        ${where}
        ORDER BY c.created_at DESC`
     );
-  }, [version, statusFilter]);
+  }, [version, statusFilter, categoryFilter, typeFilter]);
 
   const filtered = rows.filter((r) => {
     if (!search) return true;
@@ -116,6 +139,24 @@ const Movements = () => {
             <SelectItem value="partial">Partial / Parcial</SelectItem>
             <SelectItem value="closed">Closed / Fechada</SelectItem>
             <SelectItem value="all">All / Todas</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Category / Categoria" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories / Todas Categorias</SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Type / Tipo" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types / Todos Tipos</SelectItem>
+            {types.map((t) => (
+              <SelectItem key={t} value={t}>{t}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </Card>
