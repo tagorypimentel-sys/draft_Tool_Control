@@ -88,17 +88,16 @@ export function exportCautelaPDF(cautelaId: string) {
   doc.text(`Client / Cliente: ${cautela.client || "—"}`, 14, 38);
   doc.text(`Ship / Navio: ${cautela.ship || "—"}`, 14, 44);
   doc.text(`Technician / Técnico: ${technician}`, 14, 50);
+  doc.text(`Delivered by / Responsável pela Entrega: ${cautela.delivered_by || "—"}`, 14, 56);
 
   const body = items.map((it) => {
     const total = (it.unit_value_eur || 0) * it.qty_out;
     return [
+      String(it.qty_out),
       it.name,
       it.brand || "—",
-      it.category || "—",
-      it.type || "—",
       it.serial_tag || "—",
-      formatEUR(it.unit_value_eur || 0),
-      String(it.qty_out),
+      it.type || "—",
       formatEUR(total),
     ];
   });
@@ -108,21 +107,19 @@ export function exportCautelaPDF(cautelaId: string) {
   );
 
   autoTable(doc, {
-    startY: 58,
+    startY: 64,
     head: [
       [
+        "Qty / Qtd",
         "Name / Nome",
         "Brand / Marca",
-        "Category / Categoria",
-        "Type / Tipo",
         "Serial / TAG",
-        "Value (€)",
-        "Qty",
+        "Type / Tipo",
         "Total (€)",
       ],
     ],
     body,
-    foot: [["", "", "", "", "", "", "TOTAL", formatEUR(grandTotal)]],
+    foot: [["", "", "", "", "TOTAL", formatEUR(grandTotal)]],
     styles: { fontSize: 8 },
     headStyles: { fillColor: [37, 99, 235] },
     footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: "bold" },
