@@ -188,11 +188,11 @@ export function printCautela(cautelaId: string) {
     .map((it) => {
       const total = (it.unit_value_eur || 0) * it.qty_out;
       return `<tr>
+        <td style="text-align:right">${it.qty_out}</td>
         <td>${escapeHtml(it.name)}</td>
         <td>${escapeHtml(it.brand || "—")}</td>
         <td>${escapeHtml(it.serial_tag || "—")}</td>
-        <td style="text-align:right">${formatEUR(it.unit_value_eur || 0)}</td>
-        <td style="text-align:right">${it.qty_out}</td>
+        <td>${escapeHtml(it.type || "—")}</td>
         <td style="text-align:right">${formatEUR(total)}</td>
       </tr>`;
     })
@@ -212,6 +212,7 @@ export function printCautela(cautelaId: string) {
   tfoot td { font-weight: bold; background: #f1f5f9; }
   .signatures { display: flex; gap: 40px; margin-top: 60px; font-size: 12px; }
   .sig { flex: 1; border-top: 1px solid #111; padding-top: 6px; text-align: center; }
+  .sig .name { font-weight: bold; margin-bottom: 4px; }
   @media print { body { padding: 12mm; } }
 </style></head><body>
   <h1>Cautela ${escapeHtml(cautela.number)}</h1>
@@ -221,15 +222,16 @@ export function printCautela(cautelaId: string) {
     <div><b>Client / Cliente:</b> ${escapeHtml(cautela.client || "—")}</div>
     <div><b>Ship / Navio:</b> ${escapeHtml(cautela.ship || "—")}</div>
     <div><b>Technician / Técnico:</b> ${escapeHtml(technician)}</div>
+    <div><b>Delivered by / Responsável pela Entrega:</b> ${escapeHtml(cautela.delivered_by || "—")}</div>
   </div>
   <table>
     <thead>
       <tr>
+        <th style="text-align:right">Qty / Qtd</th>
         <th>Name / Nome</th>
         <th>Brand / Marca</th>
         <th>Serial / TAG</th>
-        <th style="text-align:right">Value (€)</th>
-        <th style="text-align:right">Qty</th>
+        <th>Type / Tipo</th>
         <th style="text-align:right">Total (€)</th>
       </tr>
     </thead>
@@ -239,8 +241,14 @@ export function printCautela(cautelaId: string) {
     </tfoot>
   </table>
   <div class="signatures">
-    <div class="sig">Technician/Supervisor<br/><i>Técnico/Supervisor</i></div>
-    <div class="sig">Delivered by<br/><i>Entregue por</i></div>
+    <div class="sig">
+      <div class="name">${escapeHtml(technician)}</div>
+      Technician/Supervisor<br/><i>Técnico/Supervisor</i>
+    </div>
+    <div class="sig">
+      <div class="name">${escapeHtml(cautela.delivered_by || "—")}</div>
+      Delivered by<br/><i>Responsável pela Entrega</i>
+    </div>
   </div>
   <script>window.onload = () => { window.print(); };</script>
 </body></html>`;
