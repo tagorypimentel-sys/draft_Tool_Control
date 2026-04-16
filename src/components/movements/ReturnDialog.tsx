@@ -238,7 +238,17 @@ export function ReturnDialog({ open, onOpenChange, onReturned, initialCautelaId 
           )}
           {grouped.map(([cid, g]) => (
             <Card key={cid} className="p-3 space-y-2">
-              <div className="font-bold text-sm">Cautela {g.number}</div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-bold text-sm">Cautela {g.number}</div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setConfirmFullCautelaId(cid)}
+                >
+                  <CheckCheck className="h-4 w-4" />
+                  <BiLabel en="Return Full" pt="Devolver Completa" size="small" />
+                </Button>
+              </div>
               <div className="space-y-2">
                 {g.rows.map((it) => {
                   const s = state[it.item_id] || { qty: 0, condition: "in_use" as const, notes: "" };
