@@ -9,7 +9,8 @@ import AppLayout from "@/components/AppLayout";
 import Inventory from "./pages/Inventory";
 import Technicians from "./pages/Technicians";
 import Settings from "./pages/Settings";
-import { Movements, Calibration, Reports } from "./pages/Placeholders";
+import Movements from "./pages/Movements";
+import { Calibration, Reports } from "./pages/Placeholders";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

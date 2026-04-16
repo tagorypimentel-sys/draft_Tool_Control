@@ -49,7 +49,49 @@ CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT
 );
+CREATE TABLE IF NOT EXISTS cautelas (
+  id TEXT PRIMARY KEY,
+  number TEXT UNIQUE NOT NULL,
+  project TEXT NOT NULL,
+  client TEXT,
+  ship TEXT,
+  technician_id TEXT NOT NULL,
+  date_out TEXT NOT NULL,
+  date_in TEXT,
+  status TEXT NOT NULL DEFAULT 'open',
+  notes TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS cautela_items (
+  id TEXT PRIMARY KEY,
+  cautela_id TEXT NOT NULL,
+  tool_id TEXT NOT NULL,
+  qty_out INTEGER NOT NULL,
+  qty_returned INTEGER NOT NULL DEFAULT 0,
+  qty_out_of_service INTEGER NOT NULL DEFAULT 0,
+  condition_notes TEXT,
+  unit_value_eur REAL DEFAULT 0
+);
 `;
+
+// Idempotent column additions for existing DBs
+const ALTERS = [
+  "ALTER TABLE tools ADD COLUMN brand TEXT",
+  "ALTER TABLE tools ADD COLUMN type TEXT",
+  "ALTER TABLE tools ADD COLUMN serial_tag TEXT",
+  "ALTER TABLE tools ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1",
+  "ALTER TABLE tools ADD COLUMN quantity_out_of_service INTEGER NOT NULL DEFAULT 0",
+];
+
+function applyAlters(db: Database) {
+  for (const sql of ALTERS) {
+    try {
+      db.run(sql);
+    } catch {
+      // column already exists — ignore
+    }
+  }
+}
 
 export async function getDb(): Promise<Database> {
   if (dbInstance) return dbInstance;
@@ -61,6 +103,7 @@ export async function getDb(): Promise<Database> {
   const stored = await get<Uint8Array>(STORAGE_KEY);
   dbInstance = stored ? new SQL.Database(stored) : new SQL.Database();
   dbInstance.run(SCHEMA);
+  applyAlters(dbInstance);
   return dbInstance;
 }
 
@@ -93,6 +136,7 @@ export async function importDbBytes(bytes: Uint8Array) {
   if (dbInstance) dbInstance.close();
   dbInstance = new SQL.Database(bytes);
   dbInstance.run(SCHEMA);
+  applyAlters(dbInstance);
   await saveNow();
 }
 
@@ -114,5 +158,13 @@ export function all<T = any>(sql: string, params: any[] = []): T[] {
 export function run(sql: string, params: any[] = []) {
   if (!dbInstance) return;
   dbInstance.run(sql, params);
+  scheduleSave();
+}
+
+export function exec(sqls: { sql: string; params?: any[] }[]) {
+  if (!dbInstance) return;
+  for (const { sql, params } of sqls) {
+    dbInstance.run(sql, params || []);
+  }
   scheduleSave();
 }
