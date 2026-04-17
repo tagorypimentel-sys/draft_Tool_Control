@@ -4,6 +4,28 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
+import koeLogo from "@/assets/koe-logo.gif";
+
+function loadImageAsDataURL(src: string): Promise<{ dataUrl: string; ratio: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("canvas context unavailable"));
+      ctx.drawImage(img, 0, 0);
+      resolve({
+        dataUrl: canvas.toDataURL("image/png"),
+        ratio: img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1,
+      });
+    };
+    img.onerror = reject;
+    img.src = src;
+  });
+}
 
 export type CautelaRow = {
   id: string;
@@ -72,23 +94,51 @@ export function getCautelaWithItems(cautelaId: string) {
   return { cautela, technician, items };
 }
 
-export function exportCautelaPDF(cautelaId: string) {
+export async function exportCautelaPDF(cautelaId: string) {
   const data = getCautelaWithItems(cautelaId);
   if (!data) return;
   const { cautela, technician, items } = data;
 
   const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   const dateStr = format(new Date(cautela.date_out), "dd/MM/yyyy");
 
-  doc.setFontSize(16);
-  doc.text(`Cautela ${cautela.number}`, 14, 18);
+  let logo: { dataUrl: string; ratio: number } | null = null;
+  try { logo = await loadImageAsDataURL(koeLogo); } catch { /* noop */ }
+
+  const drawHeaderFooter = () => {
+    const logoH = 14;
+    const logoW = logo ? logoH * logo.ratio : 0;
+    if (logo) {
+      try { doc.addImage(logo.dataUrl, "PNG", 14, 8, logoW, logoH); } catch { /* noop */ }
+    }
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.text(`KOE Draft Tool Control — Cautela ${cautela.number}`, 14 + logoW + 4, 17);
+    doc.setDrawColor(200);
+    doc.setLineWidth(0.2);
+    doc.line(14, 25, pageWidth - 14, 25);
+
+    doc.line(14, pageHeight - 12, pageWidth - 14, pageHeight - 12);
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    const pageNum = doc.getNumberOfPages();
+    doc.text(`Page ${pageNum} / Página ${pageNum}`, pageWidth / 2, pageHeight - 6, { align: "center" });
+    doc.text("KOE Draft Tool Control", pageWidth - 14, pageHeight - 6, { align: "right" });
+  };
+
+  // Manually draw header for first page (autoTable's didDrawPage will handle subsequent ones too,
+  // but we need meta info just on the first page below the header).
+  drawHeaderFooter();
   doc.setFontSize(10);
-  doc.text(`Date / Data: ${dateStr}`, 14, 26);
-  doc.text(`Project / Projeto: ${cautela.project}`, 14, 32);
-  doc.text(`Client / Cliente: ${cautela.client || "—"}`, 14, 38);
-  doc.text(`Ship / Navio: ${cautela.ship || "—"}`, 14, 44);
-  doc.text(`Technician / Técnico: ${technician}`, 14, 50);
-  doc.text(`Delivered by / Responsável pela Entrega: ${cautela.delivered_by || "—"}`, 14, 56);
+  doc.setTextColor(0);
+  doc.text(`Date / Data: ${dateStr}`, 14, 32);
+  doc.text(`Project / Projeto: ${cautela.project}`, 14, 38);
+  doc.text(`Client / Cliente: ${cautela.client || "—"}`, 14, 44);
+  doc.text(`Ship / Navio: ${cautela.ship || "—"}`, 14, 50);
+  doc.text(`Technician / Técnico: ${technician}`, 14, 56);
+  doc.text(`Delivered by / Responsável pela Entrega: ${cautela.delivered_by || "—"}`, 14, 62);
 
   const body = items.map((it) => {
     const total = (it.unit_value_eur || 0) * it.qty_out;
@@ -106,8 +156,10 @@ export function exportCautelaPDF(cautelaId: string) {
     0
   );
 
+  let firstPage = true;
   autoTable(doc, {
-    startY: 64,
+    startY: 70,
+    margin: { top: 28, bottom: 16, left: 14, right: 14 },
     head: [
       [
         "Qty / Qtd",
@@ -123,7 +175,21 @@ export function exportCautelaPDF(cautelaId: string) {
     styles: { fontSize: 8 },
     headStyles: { fillColor: [37, 99, 235] },
     footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: "bold" },
+    didDrawPage: () => {
+      if (firstPage) { firstPage = false; return; }
+      drawHeaderFooter();
+    },
   });
+
+  const total = doc.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    doc.setFillColor(255, 255, 255);
+    doc.rect(pageWidth / 2 - 40, pageHeight - 10, 80, 6, "F");
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text(`Page ${i} of ${total} / Página ${i} de ${total}`, pageWidth / 2, pageHeight - 6, { align: "center" });
+  }
 
   doc.save(`Cautela_${cautela.number}.pdf`);
 }
@@ -215,7 +281,13 @@ export function printCautela(cautelaId: string) {
   .sig .name { font-weight: bold; margin-bottom: 4px; }
   @media print { body { padding: 12mm; } }
 </style></head><body>
-  <h1>Cautela ${escapeHtml(cautela.number)}</h1>
+  <header style="display:flex;align-items:center;gap:12px;border-bottom:1px solid #ccc;padding-bottom:8px;margin-bottom:12px;">
+    <img src="${koeLogo}" alt="KOE" style="height:48px;width:auto;" />
+    <div>
+      <h1 style="margin:0;font-size:18px;">KOE Draft Tool Control</h1>
+      <div style="font-size:13px;color:#555;">Cautela ${escapeHtml(cautela.number)}</div>
+    </div>
+  </header>
   <div class="meta">
     <div><b>Date / Data:</b> ${dateStr}</div>
     <div><b>Project / Projeto:</b> ${escapeHtml(cautela.project)}</div>
