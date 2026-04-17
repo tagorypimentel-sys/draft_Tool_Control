@@ -1,38 +1,36 @@
 
-Adicionar filtros de **Categoria** e **Tipo** dentro do diálogo "Nova Cautela" para facilitar a seleção de ferramentas.
+Adicionar logo KOE (Kessler) ao cabeçalho do PDF do Inventário e numeração de páginas no rodapé.
 
-## O que vai mudar
+## Logo
 
-No componente `src/components/movements/NewCautelaDialog.tsx`, na barra de busca acima da tabela de ferramentas, adicionar dois novos `Select`:
+Copiar `user-uploads://FotoLogo.gif` para `src/assets/koe-logo.png` (PNG é necessário para `jsPDF.addImage` — GIF não é suportado nativamente). Conversão será feita no momento do copy via pipeline de imagem ou, se não for possível, salvar como `.gif` em `public/` e converter para PNG em runtime via canvas.
 
-1. **Categoria** — lista única de `category` extraída das ferramentas disponíveis carregadas.
-2. **Tipo** — lista única de `type` extraída das ferramentas disponíveis carregadas.
+**Abordagem escolhida:** carregar a imagem em runtime via `<img>` + `<canvas>` → dataURL PNG, e então passar para `doc.addImage(...)`. Isso evita problemas de formato no build e funciona com o GIF original.
 
-Ambos com opção "Todas / Todos" para limpar o filtro.
+- Salvar logo em `src/assets/koe-logo.gif` (import como ES module).
+- Helper `loadImageAsDataURL(src)` que retorna Promise<string> com PNG base64.
 
-## Comportamento
+## Mudanças em `src/pages/Inventory.tsx` — função `exportPdf`
 
-- Os filtros operam em conjunto com o campo de busca por texto já existente (AND lógico).
-- A lista de opções é derivada apenas das ferramentas atualmente carregadas (já filtradas por disponibilidade e calibração).
-- Os botões "Selecionar todos filtrados" e "Limpar" continuam funcionando, respeitando agora também os filtros de categoria/tipo.
-- Os filtros são resetados ao abrir/fechar o diálogo, junto com os outros campos.
+Tornar `exportPdf` async.
 
-## Layout
+**Cabeçalho (em todas as páginas, via `didDrawPage`):**
+- Logo KOE no canto superior esquerdo (~18mm × 18mm)
+- Título "KOE Draft Tool Control — Inventory / Inventário" ao lado do logo
+- Data de exportação (`dd/MM/yyyy HH:mm`) no canto superior direito
+- Linha cinza separadora abaixo
 
-```text
-[ 🔍 Search tools..............] [Categoria ▾] [Tipo ▾] [Selecionar todos] [Limpar]
-```
+**Rodapé (em todas as páginas, via `didDrawPage`):**
+- Linha cinza separadora acima
+- Centro: `Page X of Y / Página X de Y` (Y preenchido em segundo passo após `autoTable`, percorrendo `doc.internal.getNumberOfPages()`)
+- Direita: "KOE Draft Tool Control"
 
-Em telas estreitas (<768px), os filtros quebram para a linha de baixo.
+**Ajustes de layout:**
+- `margin: { top: 28, bottom: 16, left: 10, right: 10 }`
+- `startY: 28`
+- Manter orientação landscape
 
-## Detalhes técnicos
+## Arquivos afetados
 
-- Novos states: `categoryFilter` e `typeFilter` (default `"all"`).
-- `categories` e `types` derivados via `useMemo` a partir de `tools` (DISTINCT, sem nulos, ordenados).
-- `filtered` (useMemo) ganha duas condições adicionais: `t.category === categoryFilter` e `t.type === typeFilter` quando diferentes de `"all"`.
-- Usar componentes `Select`, `SelectTrigger`, `SelectContent`, `SelectItem` já presentes em `src/components/ui/select.tsx`.
-- Labels bilíngues via `BiLabel` (Categoria/Category, Tipo/Type, Todas/All).
-
-## Arquivo afetado
-
-- `src/components/movements/NewCautelaDialog.tsx` (única alteração)
+- `src/assets/koe-logo.gif` (novo — copiado do upload)
+- `src/pages/Inventory.tsx` (apenas `exportPdf` + helper de imagem)
