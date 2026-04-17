@@ -20,6 +20,7 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { all, run, uid } from "@/lib/db";
+import koeLogo from "@/assets/koe-logo.gif";
 import { useDb } from "@/hooks/useDb";
 import { formatEUR } from "@/lib/format";
 import { toast } from "sonner";
@@ -160,25 +161,95 @@ const Inventory = () => {
     toast.success("Excel exported / Excel exportado");
   };
 
-  const exportPdf = () => {
+  const loadImageAsDataURL = (src: string): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("canvas context unavailable"));
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = reject;
+      img.src = src;
+    });
+
+  const exportPdf = async () => {
     const rows = exportRows();
     if (!rows.length) {
       toast.error("No data to export / Sem dados para exportar");
       return;
     }
     const doc = new jsPDF({ orientation: "landscape" });
-    doc.setFontSize(14);
-    doc.text("Inventory / Inventário", 14, 14);
-    doc.setFontSize(9);
-    doc.text(new Date().toLocaleString(), 14, 20);
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    let logoData: string | null = null;
+    let logoRatio = 1;
+    try {
+      logoData = await loadImageAsDataURL(koeLogo);
+      const probe = new Image();
+      probe.src = logoData;
+      await new Promise((r) => { probe.onload = r; probe.onerror = r; });
+      if (probe.naturalHeight) logoRatio = probe.naturalWidth / probe.naturalHeight;
+    } catch {
+      logoData = null;
+    }
+
+    const dateStr = new Date().toLocaleString();
+    const drawHeaderFooter = () => {
+      const logoH = 14;
+      const logoW = logoH * logoRatio;
+      if (logoData) {
+        try { doc.addImage(logoData, "PNG", 10, 6, logoW, logoH); } catch { /* noop */ }
+      }
+      doc.setFontSize(12);
+      doc.setTextColor(0);
+      doc.text("KOE Draft Tool Control — Inventory / Inventário", 10 + logoW + 4, 14);
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text(dateStr, pageWidth - 10, 10, { align: "right" });
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.2);
+      doc.line(10, 23, pageWidth - 10, 23);
+
+      // Footer separator
+      doc.line(10, pageHeight - 12, pageWidth - 10, pageHeight - 12);
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text("KOE Draft Tool Control", pageWidth - 10, pageHeight - 6, { align: "right" });
+      // Page number placeholder; final pass updates totals
+      const pageNum = doc.getNumberOfPages();
+      doc.text(`Page ${pageNum} / Página ${pageNum}`, pageWidth / 2, pageHeight - 6, { align: "center" });
+    };
+
     const headers = Object.keys(rows[0]);
     autoTable(doc, {
       head: [headers],
       body: rows.map((r) => headers.map((h) => String((r as Record<string, unknown>)[h] ?? ""))),
-      startY: 24,
+      startY: 28,
+      margin: { top: 28, bottom: 16, left: 10, right: 10 },
       styles: { fontSize: 7 },
       headStyles: { fillColor: [37, 99, 235] },
+      didDrawPage: drawHeaderFooter,
     });
+
+    // Final pass: rewrite footer page numbers with correct total
+    const total = doc.getNumberOfPages();
+    for (let i = 1; i <= total; i++) {
+      doc.setPage(i);
+      // White-out previous centered page number
+      doc.setFillColor(255, 255, 255);
+      doc.rect(pageWidth / 2 - 40, pageHeight - 10, 80, 6, "F");
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text(`Page ${i} of ${total} / Página ${i} de ${total}`, pageWidth / 2, pageHeight - 6, { align: "center" });
+    }
+
     doc.save(`inventory_${new Date().toISOString().slice(0, 10)}.pdf`);
     toast.success("PDF exported / PDF exportado");
   };
