@@ -12,7 +12,7 @@ import Technicians from "./pages/Technicians";
 import Settings from "./pages/Settings";
 import Movements from "./pages/Movements";
 import Calibration from "./pages/Calibration";
-import Reports from "./pages/Reports";
+import { Reports } from "./pages/Placeholders"; // Voltei para o placeholder para teste
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,7 +28,6 @@ const App = () => (
             <BrowserRouter>
               <Routes>
                 <Route element={<AppLayout />}>
-                  {/* Voltei o Inventory como / para teste de carregamento */}
                   <Route path="/" element={<Inventory />} />
                   <Route path="/movements" element={<Movements />} />
                   <Route path="/calibration" element={<Calibration />} />
