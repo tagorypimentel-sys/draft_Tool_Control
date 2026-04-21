@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { BiLabel } from "@/components/BiLabel";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, FileText, LayoutList, ListChecks, History, UserSearch, Search } from "lucide-react";
+import { Label } from "@/components/ui/label"; // Usando o componente padrão do sistema
+import { FileSpreadsheet, FileText, LayoutList, ListChecks, History, UserSearch } from "lucide-react";
 import { all } from "@/lib/db";
 import { useDb } from "@/hooks/useDb";
 import * as XLSX from "xlsx";
@@ -52,10 +53,10 @@ const Reports = () => {
 
   const fmtEUR = (v: number) => `€ ${v.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const exportInventory = async (type: "analytic" | "synthetic", format: "excel" | "pdf") => {
+  const exportInventory = async (type: "analytic" | "synthetic", exportFormat: "excel" | "pdf") => {
     if (!tools.length) return toast.error("No data / Sem dados");
     
-    if (format === "excel") {
+    if (exportFormat === "excel") {
       let rows: any[] = [];
       if (type === "analytic") {
         rows = tools.map(t => ({
@@ -63,12 +64,12 @@ const Reports = () => {
           Qty: t.quantity, "Unit (€)": t.value_eur || 0, "Total (€)": (t.value_eur || 0) * t.quantity
         }));
       } else {
-        const summary = tools.reduce((acc, t) => {
+        const summaryMap = tools.reduce((acc, t) => {
           if (!acc[t.name]) acc[t.name] = { Name: t.name, Qty: 0, Total: 0 };
           acc[t.name].Qty += t.quantity; acc[t.name].Total += (t.value_eur || 0) * t.quantity;
           return acc;
         }, {} as any);
-        rows = Object.values(summary).map((s: any) => ({ "Nome / Name": s.Name, "Qtd / Qty": s.Qty, "Total (€)": s.Total }));
+        rows = Object.values(summaryMap).map((s: any) => ({ "Nome / Name": s.Name, "Qtd / Qty": s.Qty, "Total (€)": s.Total }));
       }
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
@@ -92,12 +93,12 @@ const Reports = () => {
         body = tools.map(t => [t.code, t.name, t.brand, t.tag, t.serial_tag, t.quantity, fmtEUR(t.value_eur || 0), fmtEUR((t.value_eur || 0) * t.quantity)]);
       } else {
         head = [["Nome / Name", "Qtd / Qty", "Total (€)"]];
-        const summary = tools.reduce((acc, t) => {
+        const summaryMap = tools.reduce((acc, t) => {
           if (!acc[t.name]) acc[t.name] = { Name: t.name, Qty: 0, Total: 0 };
           acc[t.name].Qty += t.quantity; acc[t.name].Total += (t.value_eur || 0) * t.quantity;
           return acc;
         }, {} as any);
-        body = Object.values(summary).map((s: any) => [s.Name, s.Qty, fmtEUR(s.Total)]);
+        body = Object.values(summaryMap).map((s: any) => [s.Name, s.Qty, fmtEUR(s.Total)]);
       }
 
       autoTable(doc, { head, body, startY: 28, didDrawPage: drawHeader, headStyles: { fillColor: [37, 99, 235] }, styles: { fontSize: 8 } });
@@ -105,7 +106,7 @@ const Reports = () => {
     }
   };
 
-  const exportTraceability = async (target: "item" | "tech", format: "excel" | "pdf") => {
+  const exportTraceability = async (target: "item" | "tech", exportFormat: "excel" | "pdf") => {
     const id = target === "item" ? selectedToolId : selectedTechId;
     if (!id) return toast.error(target === "item" ? "Select a tool / Selecione uma ferramenta" : "Select a technician / Selecione um técnico");
 
@@ -124,9 +125,9 @@ const Reports = () => {
     const data = all<MovementRow>(sql, [id]);
     if (!data.length) return toast.error("No movements found / Sem movimentações encontradas");
 
-    const name = target === "item" ? tools.find(t => t.id === id)?.name : technicians.find(t => t.id === id)?.name;
+    const entityName = target === "item" ? tools.find(t => t.id === id)?.name : technicians.find(t => t.id === id)?.name;
 
-    if (format === "excel") {
+    if (exportFormat === "excel") {
       const rows = data.map(d => ({
         "Cautela #": d.cautela_num, Project: d.project, [target === "item" ? "Technician" : "Tool"]: target === "item" ? d.tech_name : `${d.tool_code} - ${d.tool_name}`,
         Date: format(new Date(d.date_out), "dd/MM/yyyy"), Qty: d.qty_out, Returned: d.qty_returned, Status: d.status
@@ -141,7 +142,7 @@ const Reports = () => {
       const drawHeader = () => {
         if (logoData) doc.addImage(logoData, "PNG", 10, 5, 25, 14);
         doc.setFontSize(14); doc.setFont("helvetica", "bold");
-        doc.text(target === "item" ? `Rastreabilidade: ${name}` : `Histórico do Técnico: ${name}`, 40, 12);
+        doc.text(target === "item" ? `Rastreabilidade: ${entityName}` : `Histórico do Técnico: ${entityName}`, 40, 12);
         doc.setFontSize(10); doc.setFont("helvetica", "italic");
         doc.text(target === "item" ? "Item Traceability" : "Technician History", 40, 18);
       };
@@ -232,9 +233,5 @@ const Reports = () => {
     </div>
   );
 };
-
-const Label = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <label className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${className}`}>{children}</label>
-);
 
 export default Reports;
