@@ -36,6 +36,7 @@ const Reports = () => {
   // Preview State
   const [previewData, setPreviewData] = useState<any[] | null>(null);
   const [previewTitle, setPreviewTitle] = useState("");
+  const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
 
   const allTools = useMemo(() => { void version; return all<any>("SELECT * FROM tools ORDER BY name ASC"); }, [version]);
   const technicians = useMemo(() => { void version; return all<any>("SELECT * FROM technicians ORDER BY name ASC"); }, [version]);
@@ -73,32 +74,40 @@ const Reports = () => {
   const handlePreviewInventory = (type: "analytic" | "synthetic") => {
     if (!filteredInvTools.length) return toast.error("No data");
     setPreviewTitle(type === "analytic" ? "Inventário Analítico" : "Inventário Sintético");
+    
     if (type === "analytic") {
+      setPreviewHeaders(["Código", "Ferramenta", "TAG", "Quantidade", "Valor Total"]);
       setPreviewData(filteredInvTools.map(t => ({ c1: t.code, c2: t.name, c3: t.tag || "—", c4: t.quantity, c5: fmtEUR((t.value_eur || 0) * t.quantity) })));
     } else {
+      setPreviewHeaders(["Ferramenta", "Qtd Total", "Valor Total", "", ""]);
       const summary = filteredInvTools.reduce((acc, t) => {
         if (!acc[t.name]) acc[t.name] = { name: t.name, qty: 0, total: 0 };
         acc[t.name].qty += t.quantity; acc[t.name].total += (t.value_eur || 0) * t.quantity;
         return acc;
       }, {} as any);
-      setPreviewData(Object.values(summary).map((s: any) => ({ c1: s.name, c2: s.qty, c3: fmtEUR(s.total) })));
+      setPreviewData(Object.values(summary).map((s: any) => ({ c1: s.name, c2: s.qty, c3: s.total.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' }), c4: "", c5: "" })));
     }
   };
 
   const handlePreviewTraceability = (target: "item" | "tech") => {
     const id = target === "item" ? selectedToolId : selectedTechId;
     if (!id || id === "_") return toast.error("Selecione um item ou técnico");
+    
     const sql = target === "item" 
       ? `SELECT c.number, c.project, t.name as tech, c.date_out, ci.qty_out, c.status FROM cautela_items ci JOIN cautelas c ON c.id = ci.cautela_id JOIN technicians t ON t.id = c.technician_id WHERE ci.tool_id = ? ORDER BY c.date_out DESC`
       : `SELECT c.number, c.project, tl.name as tool, c.date_out, ci.qty_out, c.status FROM cautela_items ci JOIN cautelas c ON c.id = ci.cautela_id JOIN tools tl ON tl.id = ci.tool_id WHERE c.technician_id = ? ORDER BY c.date_out DESC`;
+    
     const data = all<any>(sql, [id]);
     if (!data.length) return toast.error("Sem movimentações");
+    
     setPreviewTitle(target === "item" ? "Rastreabilidade de Item" : "Histórico de Técnico");
-    setPreviewData(data.map(d => ({ c1: d.number, c2: d.project, c3: d.tech || d.tool, c4: d.date_out ? format(new Date(d.date_out), "dd/MM/yyyy") : "—", c5: d.status })));
+    setPreviewHeaders(["NR do Cautela", "NR do Projeto", target === "item" ? "Técnico" : "Ferramenta", "Data de Devolução", "Status"]);
+    setPreviewData(data.map(d => ({ c1: d.number, c2: d.project, c3: d.tech || d.tool, c4: d.date_out ? format(new Date(d.date_out), "dd/MM/yyyy") : "—", c5: d.status.toUpperCase() })));
   };
 
   const exportExcel = (data: any[], filename: string) => {
-    const ws = XLSX.utils.json_to_sheet(data);
+    const rows = data.map(t => ({ Code: t.code, Name: t.name, TAG: t.tag || "", Qty: t.quantity, Total: (t.value_eur || 0) * t.quantity }));
+    const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Report");
     XLSX.writeFile(wb, `${filename}.xlsx`);
@@ -204,11 +213,9 @@ const Reports = () => {
             <table className="w-full text-xs text-left">
               <thead>
                 <tr className="bg-slate-100 border-b">
-                  <th className="p-3 font-bold border-r">Info 1</th>
-                  <th className="p-3 font-bold border-r">Info 2</th>
-                  <th className="p-3 font-bold border-r">Info 3</th>
-                  <th className="p-3 font-bold border-r">Info 4</th>
-                  <th className="p-3 font-bold">Status/Total</th>
+                  {previewHeaders.map((h, idx) => (
+                    <th key={idx} className="p-3 font-bold border-r">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
