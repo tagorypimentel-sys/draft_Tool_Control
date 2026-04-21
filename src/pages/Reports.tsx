@@ -170,14 +170,27 @@ const Reports = () => {
     let body: any[] = [];
     let totalValue = 0;
 
+    const fmt = (v: number) => {
+      return `€ ${v.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
+
     if (type === "analytic") {
-      headers = ["Code", "Name", "Brand", "Model", "TAG", "Qty", "Unit Val.", "Total Val."];
+      headers = [
+        "Código\nCode", 
+        "Nome da Ferramenta\nTool Name", 
+        "Marca\nBrand", 
+        "Modelo\nModel", 
+        "TAG\nTAG", 
+        "Qtd\nQty", 
+        "Val. Unit.\nUnit Val.", 
+        "Val. Total\nTotal Val."
+      ];
       body = tools.map(t => {
         const total = (t.value_eur || 0) * t.quantity;
         totalValue += total;
-        return [t.code, t.name, t.brand, t.model, t.tag, t.quantity, formatEUR(t.value_eur || 0), formatEUR(total)];
+        return [t.code, t.name, t.brand, t.model, t.tag, t.quantity, fmt(t.value_eur || 0), fmt(total)];
       });
-      body.push([{ content: 'TOTAL GERAL', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold' } }, { content: formatEUR(totalValue), styles: { fontStyle: 'bold' } }]);
+      body.push([{ content: 'TOTAL GERAL / GRAND TOTAL', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold' } }, { content: fmt(totalValue), styles: { fontStyle: 'bold' } }]);
     } else {
       const summaryMap = tools.reduce((acc, t) => {
         const key = t.name;
@@ -187,12 +200,17 @@ const Reports = () => {
         return acc;
       }, {} as Record<string, { Name: string; Qty: number; Unit: number; Total: number }>);
       
-      headers = ["Tool Name / Nome da Ferramenta", "Total Quantity / Quantidade Total", "Unit Value / Val. Unit.", "Total Value / Val. Total (EUR)"];
+      headers = [
+        "Nome da Ferramenta\nTool Name", 
+        "Quantidade Total\nTotal Quantity", 
+        "Val. Unit.\nUnit Value", 
+        "Val. Total (EUR)\nTotal Value"
+      ];
       body = Object.values(summaryMap).map(s => {
         totalValue += s.Total;
-        return [s.Name, s.Qty, formatEUR(s.Unit), formatEUR(s.Total)];
+        return [s.Name, s.Qty, fmt(s.Unit), fmt(s.Total)];
       });
-      body.push([{ content: 'TOTAL GERAL', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } }, { content: formatEUR(totalValue), styles: { fontStyle: 'bold' } }]);
+      body.push([{ content: 'TOTAL GERAL / GRAND TOTAL', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } }, { content: fmt(totalValue), styles: { fontStyle: 'bold' } }]);
     }
 
     autoTable(doc, {
@@ -200,9 +218,13 @@ const Reports = () => {
       body: body,
       startY: 28,
       didDrawPage: drawHeaderFooter,
-      headStyles: { fillColor: [37, 99, 235] },
-      styles: { fontSize: 8 },
-      theme: 'striped'
+      headStyles: { fillColor: [37, 99, 235], fontSize: 8, halign: 'center', valign: 'middle' },
+      styles: { fontSize: 8, cellPadding: 2 },
+      theme: 'striped',
+      columnStyles: {
+        0: { cellWidth: 'auto' },
+        1: { cellWidth: 'auto' }
+      }
     });
 
     doc.save(`inventory_${type}_${new Date().toISOString().slice(0, 10)}.pdf`);
