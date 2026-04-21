@@ -10,6 +10,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import koeLogo from "@/assets/koe-logo.gif";
 import { toast } from "sonner";
+import { formatEUR } from "@/lib/format";
 
 type Tool = {
   id: string;
@@ -52,7 +53,7 @@ const Reports = () => {
       img.src = src;
     });
 
-  const exportGeneralExcel = () => {
+  const exportAnalyticExcel = () => {
     if (!tools.length) return toast.error("No data / Sem dados");
     const rows = tools.map((t) => ({
       Code: t.code,
@@ -65,44 +66,65 @@ const Reports = () => {
       TAG: t.tag || "",
       Status: t.status,
       Quantity: t.quantity,
-      Value: t.value_eur || 0,
+      "Unit Value (EUR)": t.value_eur || 0,
+      "Total Value (EUR)": (t.value_eur || 0) * t.quantity,
       Location: t.location || "",
     }));
+    
+    const totalValue = rows.reduce((acc, r) => acc + r["Total Value (EUR)"], 0);
+    rows.push({
+      Code: "TOTAL",
+      Name: "SUM / SOMA",
+      Brand: "", Model: "", Category: "", Type: "", Serial: "", TAG: "", Status: "",
+      Quantity: rows.reduce((acc, r) => acc + (typeof r.Quantity === 'number' ? r.Quantity : 0), 0),
+      "Unit Value (EUR)": 0,
+      "Total Value (EUR)": totalValue,
+      Location: ""
+    } as any);
+
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "General Inventory");
-    XLSX.writeFile(wb, `inventory_general_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, "Analytic Inventory");
+    XLSX.writeFile(wb, `inventory_analytic_${new Date().toISOString().slice(0, 10)}.xlsx`);
     toast.success("Excel exported / Excel exportado");
   };
 
-  const exportSummaryExcel = () => {
+  const exportSyntheticExcel = () => {
     if (!tools.length) return toast.error("No data / Sem dados");
     
-    // Group by name
     const summaryMap = tools.reduce((acc, t) => {
       const key = t.name;
       if (!acc[key]) {
-        acc[key] = { Name: key, Quantity: 0, Items: [] as string[] };
+        acc[key] = { Name: key, Quantity: 0, UnitValue: t.value_eur || 0, TotalValue: 0 };
       }
       acc[key].Quantity += t.quantity;
-      if (t.tag) acc[key].Items.push(t.tag);
+      acc[key].TotalValue += (t.value_eur || 0) * t.quantity;
       return acc;
-    }, {} as Record<string, { Name: string; Quantity: number; Items: string[] }>);
+    }, {} as Record<string, { Name: string; Quantity: number; UnitValue: number; TotalValue: number }>);
 
     const rows = Object.values(summaryMap).map(s => ({
       "Tool Name / Nome": s.Name,
-      "Total Quantity / Qtd Total": s.Quantity,
-      "Tags": s.Items.join(", ")
+      "Total Qty / Qtd Total": s.Quantity,
+      "Unit Value (EUR) / Val. Unit": s.UnitValue,
+      "Total Value (EUR) / Val. Total": s.TotalValue
     }));
+
+    const grandTotal = rows.reduce((acc, r) => acc + r["Total Value (EUR) / Val. Total"], 0);
+    rows.push({
+      "Tool Name / Nome": "TOTAL GERAL",
+      "Total Qty / Qtd Total": rows.reduce((acc, r) => acc + r["Total Qty / Qtd Total"], 0),
+      "Unit Value (EUR) / Val. Unit": 0,
+      "Total Value (EUR) / Val. Total": grandTotal
+    } as any);
 
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Summary Report");
-    XLSX.writeFile(wb, `inventory_summary_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, "Synthetic Inventory");
+    XLSX.writeFile(wb, `inventory_synthetic_${new Date().toISOString().slice(0, 10)}.xlsx`);
     toast.success("Excel exported / Excel exportado");
   };
 
-  const exportPdf = async (type: "general" | "summary") => {
+  const exportPdf = async (type: "analytic" | "synthetic") => {
     if (!tools.length) return toast.error("No data / Sem dados");
     
     const doc = new jsPDF({ orientation: "landscape" });
@@ -121,7 +143,7 @@ const Reports = () => {
         doc.addImage(logoData, "PNG", 10, 6, 25, 14);
       }
       doc.setFontSize(14);
-      doc.text(type === "general" ? "Inventário Geral / General Inventory" : "Resumo de Inventário / Inventory Summary", 40, 15);
+      doc.text(type === "analytic" ? "Inventário Analítico / Analytic Inventory" : "Inventário Sintético / Synthetic Inventory", 40, 15);
       doc.setFontSize(8);
       doc.text(new Date().toLocaleString(), pageWidth - 10, 10, { align: "right" });
       doc.line(10, 23, pageWidth - 10, 23);
@@ -133,20 +155,31 @@ const Reports = () => {
 
     let headers: string[] = [];
     let body: any[] = [];
+    let totalValue = 0;
 
-    if (type === "general") {
-      headers = ["Code", "Name", "Brand", "Model", "Type", "TAG", "Status", "Qty"];
-      body = tools.map(t => [t.code, t.name, t.brand, t.model, t.type, t.tag, t.status, t.quantity]);
+    if (type === "analytic") {
+      headers = ["Code", "Name", "Brand", "Model", "TAG", "Qty", "Unit Val.", "Total Val."];
+      body = tools.map(t => {
+        const total = (t.value_eur || 0) * t.quantity;
+        totalValue += total;
+        return [t.code, t.name, t.brand, t.model, t.tag, t.quantity, formatEUR(t.value_eur || 0), formatEUR(total)];
+      });
+      body.push([{ content: 'TOTAL GERAL', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold' } }, { content: formatEUR(totalValue), styles: { fontStyle: 'bold' } }]);
     } else {
       const summaryMap = tools.reduce((acc, t) => {
         const key = t.name;
-        if (!acc[key]) acc[key] = { Name: key, Qty: 0 };
+        if (!acc[key]) acc[key] = { Name: key, Qty: 0, Unit: t.value_eur || 0, Total: 0 };
         acc[key].Qty += t.quantity;
+        acc[key].Total += (t.value_eur || 0) * t.quantity;
         return acc;
-      }, {} as Record<string, { Name: string; Qty: number }>);
+      }, {} as Record<string, { Name: string; Qty: number; Unit: number; Total: number }>);
       
-      headers = ["Tool Name / Nome da Ferramenta", "Total Quantity / Quantidade Total"];
-      body = Object.values(summaryMap).map(s => [s.Name, s.Qty]);
+      headers = ["Tool Name / Nome da Ferramenta", "Total Quantity / Quantidade Total", "Unit Value / Val. Unit.", "Total Value / Val. Total (EUR)"];
+      body = Object.values(summaryMap).map(s => {
+        totalValue += s.Total;
+        return [s.Name, s.Qty, formatEUR(s.Unit), formatEUR(s.Total)];
+      });
+      body.push([{ content: 'TOTAL GERAL', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } }, { content: formatEUR(totalValue), styles: { fontStyle: 'bold' } }]);
     }
 
     autoTable(doc, {
@@ -155,10 +188,11 @@ const Reports = () => {
       startY: 28,
       didDrawPage: drawHeaderFooter,
       headStyles: { fillColor: [37, 99, 235] },
-      styles: { fontSize: 8 }
+      styles: { fontSize: 8 },
+      theme: 'striped'
     });
 
-    doc.save(`report_${type}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    doc.save(`inventory_${type}_${new Date().toISOString().slice(0, 10)}.pdf`);
     toast.success("PDF exported / PDF exportado");
   };
 
@@ -167,46 +201,46 @@ const Reports = () => {
       <BiLabel en="Reports" pt="Relatórios" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Inventário Geral */}
+        {/* Inventário Analítico */}
         <Card className="p-6 space-y-4 border-t-4 border-t-blue-600">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-blue-100 rounded-lg text-blue-600">
               <LayoutList className="h-6 w-6" />
             </div>
-            <div>
-              <h3 className="font-bold text-lg">Inventário Geral</h3>
-              <p className="text-sm text-muted-foreground">Listagem completa com todos os itens e detalhes individuais.</p>
+            <div className="flex-1">
+              <h3 className="font-bold text-lg">Inventário Analítico</h3>
+              <p className="text-sm text-muted-foreground">Listagem detalhada item a item com códigos e TAGs individuais.</p>
             </div>
           </div>
           <div className="flex gap-2 pt-4">
-            <Button className="flex-1" variant="outline" onClick={exportGeneralExcel}>
+            <Button className="flex-1" variant="outline" onClick={exportAnalyticExcel}>
               <FileSpreadsheet className="mr-2 h-4 w-4" />
               Excel
             </Button>
-            <Button className="flex-1" variant="outline" onClick={() => exportPdf("general")}>
+            <Button className="flex-1" variant="outline" onClick={() => exportPdf("analytic")}>
               <FileText className="mr-2 h-4 w-4" />
               PDF
             </Button>
           </div>
         </Card>
 
-        {/* Resumo de Inventário */}
+        {/* Inventário Sintético */}
         <Card className="p-6 space-y-4 border-t-4 border-t-purple-600">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-purple-100 rounded-lg text-purple-600">
               <ListChecks className="h-6 w-6" />
             </div>
-            <div>
-              <h3 className="font-bold text-lg">Resumo de Inventário</h3>
-              <p className="text-sm text-muted-foreground">Relatório consolidado agrupando itens iguais e somando as quantidades.</p>
+            <div className="flex-1">
+              <h3 className="font-bold text-lg">Inventário Sintético</h3>
+              <p className="text-sm text-muted-foreground">Resumo consolidado agrupando itens iguais com somatório de valores.</p>
             </div>
           </div>
           <div className="flex gap-2 pt-4">
-            <Button className="flex-1" variant="outline" onClick={exportSummaryExcel}>
+            <Button className="flex-1" variant="outline" onClick={exportSyntheticExcel}>
               <FileSpreadsheet className="mr-2 h-4 w-4" />
               Excel
             </Button>
-            <Button className="flex-1" variant="outline" onClick={() => exportPdf("summary")}>
+            <Button className="flex-1" variant="outline" onClick={() => exportPdf("synthetic")}>
               <FileText className="mr-2 h-4 w-4" />
               PDF
             </Button>
