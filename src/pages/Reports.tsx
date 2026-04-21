@@ -2,9 +2,10 @@ import React, { useMemo, useState } from "react";
 import { BiLabel } from "@/components/BiLabel";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label"; // Usando o componente padrão do sistema
-import { FileSpreadsheet, FileText, LayoutList, ListChecks, History, UserSearch } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { FileSpreadsheet, FileText, LayoutList, ListChecks, History, UserSearch, FilterX } from "lucide-react";
 import { all } from "@/lib/db";
 import { useDb } from "@/hooks/useDb";
 import * as XLSX from "xlsx";
@@ -14,7 +15,7 @@ import koeLogo from "@/assets/koe-logo.gif";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
-type Tool = { id: string; code: string; name: string; brand: string | null; quantity: number; value_eur: number | null; tag: string | null; serial_tag: string | null };
+type Tool = { id: string; code: string; name: string; brand: string | null; category: string | null; quantity: number; value_eur: number | null; tag: string | null; serial_tag: string | null };
 type Tech = { id: string; name: string };
 type MovementRow = { 
   cautela_num: string; 
@@ -32,9 +33,28 @@ const Reports = () => {
   const { version } = useDb();
   const [selectedToolId, setSelectedToolId] = useState<string>("");
   const [selectedTechId, setSelectedTechId] = useState<string>("");
+  
+  // Filtros de Inventário
+  const [invSearch, setInvSearch] = useState("");
+  const [invCategory, setInvCategory] = useState("all");
+  const [invTag, setInvTag] = useState("");
 
-  const tools = useMemo(() => { void version; return all<Tool>("SELECT * FROM tools ORDER BY name ASC"); }, [version]);
+  const allTools = useMemo(() => { void version; return all<Tool>("SELECT * FROM tools ORDER BY name ASC"); }, [version]);
   const technicians = useMemo(() => { void version; return all<Tech>("SELECT * FROM technicians ORDER BY name ASC"); }, [version]);
+
+  const categories = useMemo(() => {
+    const cats = Array.from(new Set(allTools.map(t => t.category).filter(Boolean)));
+    return cats.sort();
+  }, [allTools]);
+
+  const filteredTools = useMemo(() => {
+    return allTools.filter(t => {
+      const matchSearch = !invSearch || t.name.toLowerCase().includes(invSearch.toLowerCase()) || t.code.toLowerCase().includes(invSearch.toLowerCase());
+      const matchCategory = invCategory === "all" || t.category === invCategory;
+      const matchTag = !invTag || (t.tag || "").toLowerCase().includes(invTag.toLowerCase());
+      return matchSearch && matchCategory && matchTag;
+    });
+  }, [allTools, invSearch, invCategory, invTag]);
 
   const loadImageAsDataURL = (src: string): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -54,17 +74,17 @@ const Reports = () => {
   const fmtEUR = (v: number) => `€ ${v.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const exportInventory = async (type: "analytic" | "synthetic", exportFormat: "excel" | "pdf") => {
-    if (!tools.length) return toast.error("No data / Sem dados");
+    if (!filteredTools.length) return toast.error("No data matches filters / Sem dados com estes filtros");
     
     if (exportFormat === "excel") {
       let rows: any[] = [];
       if (type === "analytic") {
-        rows = tools.map(t => ({
-          Code: t.code, Name: t.name, Brand: t.brand || "", TAG: t.tag || "", Serial: t.serial_tag || "", 
+        rows = filteredTools.map(t => ({
+          Code: t.code, Name: t.name, Brand: t.brand || "", Category: t.category || "", TAG: t.tag || "", Serial: t.serial_tag || "", 
           Qty: t.quantity, "Unit (€)": t.value_eur || 0, "Total (€)": (t.value_eur || 0) * t.quantity
         }));
       } else {
-        const summaryMap = tools.reduce((acc, t) => {
+        const summaryMap = filteredTools.reduce((acc, t) => {
           if (!acc[t.name]) acc[t.name] = { Name: t.name, Qty: 0, Total: 0 };
           acc[t.name].Qty += t.quantity; acc[t.name].Total += (t.value_eur || 0) * t.quantity;
           return acc;
@@ -84,16 +104,18 @@ const Reports = () => {
         doc.text(type === "analytic" ? "Inventário Analítico" : "Inventário Sintético", 40, 12);
         doc.setFontSize(10); doc.setFont("helvetica", "italic");
         doc.text(type === "analytic" ? "Analytic Inventory" : "Synthetic Inventory", 40, 18);
+        doc.setFontSize(8); doc.setFont("helvetica", "normal");
+        doc.text(`Filters: Category=${invCategory}, Search=${invSearch || 'all'}, TAG=${invTag || 'all'}`, 40, 24);
       };
       
       let head: string[][] = [];
       let body: any[][] = [];
       if (type === "analytic") {
-        head = [["Code", "Name", "Brand", "TAG", "Serial", "Qty", "Unit", "Total"]];
-        body = tools.map(t => [t.code, t.name, t.brand, t.tag, t.serial_tag, t.quantity, fmtEUR(t.value_eur || 0), fmtEUR((t.value_eur || 0) * t.quantity)]);
+        head = [["Code", "Name", "Brand", "Category", "TAG", "Serial", "Qty", "Unit", "Total"]];
+        body = filteredTools.map(t => [t.code, t.name, t.brand, t.category, t.tag, t.serial_tag, t.quantity, fmtEUR(t.value_eur || 0), fmtEUR((t.value_eur || 0) * t.quantity)]);
       } else {
         head = [["Nome / Name", "Qtd / Qty", "Total (€)"]];
-        const summaryMap = tools.reduce((acc, t) => {
+        const summaryMap = filteredTools.reduce((acc, t) => {
           if (!acc[t.name]) acc[t.name] = { Name: t.name, Qty: 0, Total: 0 };
           acc[t.name].Qty += t.quantity; acc[t.name].Total += (t.value_eur || 0) * t.quantity;
           return acc;
@@ -101,7 +123,7 @@ const Reports = () => {
         body = Object.values(summaryMap).map((s: any) => [s.Name, s.Qty, fmtEUR(s.Total)]);
       }
 
-      autoTable(doc, { head, body, startY: 28, didDrawPage: drawHeader, headStyles: { fillColor: [37, 99, 235] }, styles: { fontSize: 8 } });
+      autoTable(doc, { head, body, startY: 30, didDrawPage: drawHeader, headStyles: { fillColor: [37, 99, 235] }, styles: { fontSize: 8 } });
       doc.save(`inventory_${type}.pdf`);
     }
   };
@@ -125,7 +147,7 @@ const Reports = () => {
     const data = all<MovementRow>(sql, [id]);
     if (!data.length) return toast.error("No movements found / Sem movimentações encontradas");
 
-    const entityName = target === "item" ? tools.find(t => t.id === id)?.name : technicians.find(t => t.id === id)?.name;
+    const entityName = target === "item" ? allTools.find(t => t.id === id)?.name : technicians.find(t => t.id === id)?.name;
 
     if (exportFormat === "excel") {
       const rows = data.map(d => ({
@@ -158,33 +180,74 @@ const Reports = () => {
     }
   };
 
+  const clearFilters = () => {
+    setInvSearch("");
+    setInvCategory("all");
+    setInvTag("");
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
       <BiLabel en="Reports" pt="Relatórios" />
       
-      {/* Seção 1: Inventários */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="p-6 space-y-4 border-t-4 border-t-blue-600">
-          <div className="flex items-center gap-3">
-            <LayoutList className="h-6 w-6 text-blue-600" />
-            <h3 className="font-bold text-lg">Inventário Analítico</h3>
+      {/* Seção 1: Inventários com Filtros */}
+      <Card className="p-6 border-l-4 border-l-blue-600 bg-slate-50/50">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <LayoutList className="h-5 w-5 text-blue-600" />
+            <h3 className="font-bold text-lg">Exportação de Inventário</h3>
           </div>
-          <div className="flex gap-2">
-            <Button className="flex-1" variant="outline" onClick={() => exportInventory("analytic", "excel")}><FileSpreadsheet className="mr-2 h-4 w-4" />Excel</Button>
-            <Button className="flex-1" variant="outline" onClick={() => exportInventory("analytic", "pdf")}><FileText className="mr-2 h-4 w-4" />PDF</Button>
+          {(invSearch || invCategory !== "all" || invTag) && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs text-muted-foreground hover:text-destructive">
+              <FilterX className="mr-1 h-3 w-3" /> Limpar Filtros
+            </Button>
+          )}
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Nome ou Código / Name or Code</Label>
+            <Input placeholder="Search..." value={invSearch} onChange={e => setInvSearch(e.target.value)} className="bg-white" />
           </div>
-        </Card>
-        <Card className="p-6 space-y-4 border-t-4 border-t-sky-600">
-          <div className="flex items-center gap-3">
-            <ListChecks className="h-6 w-6 text-sky-600" />
-            <h3 className="font-bold text-lg">Inventário Sintético</h3>
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Categoria / Category</Label>
+            <Select value={invCategory} onValueChange={setInvCategory}>
+              <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas / All</SelectItem>
+                {categories.map(c => <SelectItem key={c} value={c || ""}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex gap-2">
-            <Button className="flex-1" variant="outline" onClick={() => exportInventory("synthetic", "excel")}><FileSpreadsheet className="mr-2 h-4 w-4" />Excel</Button>
-            <Button className="flex-1" variant="outline" onClick={() => exportInventory("synthetic", "pdf")}><FileText className="mr-2 h-4 w-4" />PDF</Button>
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase font-bold text-muted-foreground">TAG</Label>
+            <Input placeholder="TAG search..." value={invTag} onChange={e => setInvTag(e.target.value)} className="bg-white" />
           </div>
-        </Card>
-      </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="p-4 bg-white border-t-2 border-t-blue-600 space-y-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-sm">Analítico / Analytic</span>
+              <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">{filteredTools.length} itens</span>
+            </div>
+            <div className="flex gap-2">
+              <Button className="flex-1 h-8 text-xs" variant="outline" onClick={() => exportInventory("analytic", "excel")}><FileSpreadsheet className="mr-2 h-3.5 w-3.5" />Excel</Button>
+              <Button className="flex-1 h-8 text-xs" variant="outline" onClick={() => exportInventory("analytic", "pdf")}><FileText className="mr-2 h-3.5 w-3.5" />PDF</Button>
+            </div>
+          </Card>
+          <Card className="p-4 bg-white border-t-2 border-t-sky-600 space-y-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-sm">Sintético / Synthetic</span>
+              <span className="text-[10px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full font-bold">Resumo por Nome</span>
+            </div>
+            <div className="flex gap-2">
+              <Button className="flex-1 h-8 text-xs" variant="outline" onClick={() => exportInventory("synthetic", "excel")}><FileSpreadsheet className="mr-2 h-3.5 w-3.5" />Excel</Button>
+              <Button className="flex-1 h-8 text-xs" variant="outline" onClick={() => exportInventory("synthetic", "pdf")}><FileText className="mr-2 h-3.5 w-3.5" />PDF</Button>
+            </div>
+          </Card>
+        </div>
+      </Card>
 
       {/* Seção 2: Rastreabilidade */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -199,7 +262,7 @@ const Reports = () => {
             <Select value={selectedToolId} onValueChange={setSelectedToolId}>
               <SelectTrigger><SelectValue placeholder="Select tool / Selecione..." /></SelectTrigger>
               <SelectContent>
-                {tools.map(t => <SelectItem key={t.id} value={t.id}>{t.code} - {t.name} {t.tag ? `(${t.tag})` : ""}</SelectItem>)}
+                {allTools.map(t => <SelectItem key={t.id} value={t.id}>{t.code} - {t.name} {t.tag ? `(${t.tag})` : ""}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
