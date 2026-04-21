@@ -15,7 +15,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Search, Upload, X, Eye, Copy, FileSpreadsheet, FileText } from "lucide-react";
+import { Plus, Pencil, Search, Upload, X, Eye, Copy, FileSpreadsheet, FileText, Timer, ClipboardCheck } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -410,6 +410,7 @@ const Inventory = () => {
               <TableHead><BiLabel en="Type" pt="Tipo" size="table" /></TableHead>
               <TableHead><BiLabel en="Serial" pt="Série" size="table" /></TableHead>
               <TableHead><BiLabel en="TAG" pt="TAG" size="table" /></TableHead>
+              <TableHead className="text-center"><BiLabel en="Maint." pt="Manut." size="table" /></TableHead>
               <TableHead><BiLabel en="Status" pt="Status" size="table" /></TableHead>
               <TableHead className="text-right"><BiLabel en="Qty" pt="Qtd" size="table" /></TableHead>
               <TableHead className="text-right"><BiLabel en="Value" pt="Valor" size="table" /></TableHead>
@@ -466,6 +467,20 @@ const Inventory = () => {
                   <TableCell>{t.type || "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{t.serial_tag || "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{t.tag || "—"}</TableCell>
+                  <TableCell>
+                    <div className="flex justify-center gap-2">
+                      {t.requires_calibration ? (
+                        <Timer className="h-4 w-4 text-sky-600 dark:text-sky-400" title="Requires Calibration / Exige Calibração" />
+                      ) : (
+                        <div className="h-4 w-4" />
+                      )}
+                      {t.requires_inspection ? (
+                        <ClipboardCheck className="h-4 w-4 text-purple-600 dark:text-purple-400" title="Requires Inspection / Exige Inspeção" />
+                      ) : (
+                        <div className="h-4 w-4" />
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {t.requires_calibration && ["red", "never"].includes(getCalibrationStatus(t.next_calibration_date))
                       ? statusBadge("calibration")
