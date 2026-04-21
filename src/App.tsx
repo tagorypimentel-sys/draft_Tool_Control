@@ -12,7 +12,7 @@ import Technicians from "./pages/Technicians";
 import Settings from "./pages/Settings";
 import Movements from "./pages/Movements";
 import Calibration from "./pages/Calibration";
-import Reports from "./pages/Reports";
+import Reports from "./pages/Reports"; // Usando o arquivo real src/pages/Reports.tsx
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

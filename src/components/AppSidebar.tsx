@@ -1,4 +1,4 @@
-import { Wrench, ArrowLeftRight, Crosshair, BarChart2, UserCheck, Settings } from "lucide-react";
+import { Wrench, ArrowLeftRight, Crosshair, BarChart2, UserCheck, Settings, LayoutDashboard } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -19,7 +19,8 @@ import { all } from "@/lib/db";
 import { getCalibrationStatus } from "@/lib/calibration";
 
 const items = [
-  { en: "Inventory", pt: "Inventário", url: "/", icon: Wrench, end: true },
+  { en: "Dashboard", pt: "Painel de Controle", url: "/", icon: LayoutDashboard, end: true },
+  { en: "Inventory", pt: "Inventário", url: "/inventory", icon: Wrench },
   { en: "Movements", pt: "Movimentações", url: "/movements", icon: ArrowLeftRight, badge: true },
   { en: "Calibration", pt: "Calibração", url: "/calibration", icon: Crosshair, calibration: true },
   { en: "Reports", pt: "Relatórios", url: "/reports", icon: BarChart2 },
