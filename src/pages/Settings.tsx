@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Download, Upload, Moon, Sun, Trash2 } from "lucide-react";
+import { Download, Upload, Moon, Sun, Trash2, FileSpreadsheet } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { exportDbBytes, importDbBytes, all, run } from "@/lib/db";
 import { useDb } from "@/hooks/useDb";
@@ -14,6 +14,7 @@ const Settings = () => {
   const { theme, toggle } = useTheme();
   const { bump, version } = useDb();
   const inputRef = useRef<HTMLInputElement>(null);
+  const excelRef = useRef<HTMLInputElement>(null);
 
   const savedOverdue = useMemo(() => {
     void version;
@@ -58,6 +59,58 @@ const Settings = () => {
     run("DELETE FROM tools");
     bump();
     toast.success("Inventory cleared / Inventário limpo");
+  };
+
+  const importExcel = async (file: File) => {
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const sheetName = wb.SheetNames[0];
+      const data = XLSX.utils.sheet_to_json<any>(wb.Sheets[sheetName]);
+
+      if (!data.length) {
+        toast.error("Empty file / Arquivo vazio");
+        return;
+      }
+
+      // Simple column mapper
+      const map = (item: any, options: string[]) => {
+        const key = Object.keys(item).find(k => 
+          options.some(opt => k.toLowerCase().trim().includes(opt.toLowerCase()))
+        );
+        return key ? item[key] : null;
+      };
+
+      let importedCount = 0;
+      data.forEach((item: any) => {
+        const name = map(item, ["Nome", "Name", "Descrição", "Description"]);
+        if (!name) return; // Skip items without name
+
+        const code = map(item, ["Código", "Code", "ID"]) || String(Date.now() + importedCount).slice(-5);
+        const brand = map(item, ["Marca", "Brand", "Fabricante"]);
+        const model = map(item, ["Modelo", "Model"]);
+        const type = map(item, ["Tipo", "Type", "Categoria"]);
+        const serial = map(item, ["Série", "Serial", "S/N"]);
+        const tag = map(item, ["TAG"]);
+        const qty = parseInt(map(item, ["Quantidade", "Qty", "Qtd", "Quantity"])) || 1;
+        const val = parseFloat(map(item, ["Valor", "Value", "Price", "Preço"])) || 0;
+        const cal = map(item, ["Calibração", "Calibration", "Exige"]) ? 1 : 0;
+        const insp = map(item, ["Inspeção", "Inspection"]) ? 1 : 0;
+
+        run(
+          `INSERT INTO tools (id, code, name, brand, model, type, serial_tag, tag, status, quantity, value_eur, requires_calibration, requires_inspection)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          [crypto.randomUUID(), String(code), String(name), brand, model, type, serial, tag, "available", qty, val, cal, insp]
+        );
+        importedCount++;
+      });
+
+      bump();
+      toast.success(`${importedCount} items imported / itens importados`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Error importing file / Erro ao importar arquivo");
+    }
   };
 
   return (
@@ -137,8 +190,33 @@ const Settings = () => {
           </div>
           <Button variant="destructive" onClick={clearInventory} size="sm">
             <Trash2 className="h-4 w-4 mr-2" />
-            <BiLabel en="Clear All" pt="Limpar Tudo" size="small" />
+            <BiLabel en="Clear All" pt="Clear All" size="small" />
           </Button>
+        </div>
+
+        <div className="flex items-center justify-between gap-4 pt-4 border-t">
+          <div>
+            <BiLabel en="Import from Excel/CSV" pt="Importar de Excel/CSV" size="small" />
+            <p className="text-xs text-muted-foreground">
+              Import tools from an .xlsx or .csv file. <br />
+              Importar ferramentas de um arquivo Excel ou CSV.
+            </p>
+          </div>
+          <Button variant="outline" onClick={() => excelRef.current?.click()} size="sm">
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            <BiLabel en="Select File" pt="Selecionar Arquivo" size="small" />
+          </Button>
+          <input
+            ref={excelRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) importExcel(f);
+              e.target.value = "";
+            }}
+          />
         </div>
       </Card>
     </div>
