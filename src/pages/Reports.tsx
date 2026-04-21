@@ -27,7 +27,7 @@ const Reports = () => {
   // States para Rastreabilidade por Item
   const [selectedToolId, setSelectedToolId] = useState("");
   const [traceSearch, setTraceSearch] = useState("");
-  const [traceCategory, setTraceCategory] = useState("all");
+  const [traceType, setTraceType] = useState("all"); // Mudado de Category para Type
   const [traceTag, setTraceTag] = useState("");
 
   // State para Técnico
@@ -44,6 +44,10 @@ const Reports = () => {
     return Array.from(new Set(allTools.map(t => t.category).filter(Boolean))).sort() as string[];
   }, [allTools]);
 
+  const types = useMemo(() => {
+    return Array.from(new Set(allTools.map(t => t.type).filter(Boolean))).sort() as string[];
+  }, [allTools]);
+
   // Ferramentas filtradas para o Inventário
   const filteredInvTools = useMemo(() => {
     return allTools.filter(t => {
@@ -54,15 +58,15 @@ const Reports = () => {
     });
   }, [allTools, invSearch, invCategory, invTag]);
 
-  // Ferramentas filtradas para a SELEÇÃO na Rastreabilidade
+  // Ferramentas filtradas para a SELEÇÃO na Rastreabilidade (Agora usa TYPE)
   const filteredTraceTools = useMemo(() => {
     return allTools.filter(t => {
       const mS = !traceSearch || t.name.toLowerCase().includes(traceSearch.toLowerCase()) || t.code.toLowerCase().includes(traceSearch.toLowerCase());
-      const mC = traceCategory === "all" || t.category === traceCategory;
+      const mTp = traceType === "all" || t.type === traceType;
       const mT = !traceTag || (t.tag || "").toLowerCase().includes(traceTag.toLowerCase());
-      return mS && mC && mT;
+      return mS && mTp && mT;
     });
-  }, [allTools, traceSearch, traceCategory, traceTag]);
+  }, [allTools, traceSearch, traceType, traceTag]);
 
   const fmtEUR = (v: number) => `€ ${v.toLocaleString("de-DE", { minimumFractionDigits: 2 })}`;
 
@@ -83,7 +87,7 @@ const Reports = () => {
 
   const handlePreviewTraceability = (target: "item" | "tech") => {
     const id = target === "item" ? selectedToolId : selectedTechId;
-    if (!id) return toast.error("Selecione um item ou técnico");
+    if (!id || id === "_") return toast.error("Selecione um item ou técnico");
     const sql = target === "item" 
       ? `SELECT c.number, c.project, t.name as tech, c.date_out, ci.qty_out, c.status FROM cautela_items ci JOIN cautelas c ON c.id = ci.cautela_id JOIN technicians t ON t.id = c.technician_id WHERE ci.tool_id = ? ORDER BY c.date_out DESC`
       : `SELECT c.number, c.project, tl.name as tool, c.date_out, ci.qty_out, c.status FROM cautela_items ci JOIN cautelas c ON c.id = ci.cautela_id JOIN tools tl ON tl.id = ci.tool_id WHERE c.technician_id = ? ORDER BY c.date_out DESC`;
@@ -94,7 +98,8 @@ const Reports = () => {
   };
 
   const exportExcel = (data: any[], filename: string) => {
-    const ws = XLSX.utils.json_to_sheet(data);
+    const rows = data.map(t => ({ Code: t.code, Name: t.name, TAG: t.tag || "", Qty: t.quantity, Total: (t.value_eur || 0) * t.quantity }));
+    const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Report");
     XLSX.writeFile(wb, `${filename}.xlsx`);
@@ -136,10 +141,10 @@ const Reports = () => {
           <div className="grid grid-cols-1 gap-3 p-3 bg-white/50 rounded-lg border border-green-100">
             <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                    <Label className="text-[10px] uppercase font-bold text-green-700">Categoria</Label>
-                    <Select value={traceCategory} onValueChange={setTraceCategory}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todas" /></SelectTrigger>
-                        <SelectContent><SelectItem value="all">Todas</SelectItem>{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                    <Label className="text-[10px] uppercase font-bold text-green-700">Tipo / Type</Label>
+                    <Select value={traceType} onValueChange={setTraceType}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos" /></SelectTrigger>
+                        <SelectContent><SelectItem value="all">Todos</SelectItem>{types.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                     </Select>
                 </div>
                 <div className="space-y-1">
