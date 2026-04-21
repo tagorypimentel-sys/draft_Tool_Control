@@ -35,6 +35,7 @@ type Tool = {
   model: string | null;
   type: string | null;
   serial_tag: string | null;
+  tag: string | null;
   category: string | null;
   location: string | null;
   status: string;
@@ -71,6 +72,7 @@ const empty: Partial<Tool> = {
   model: "",
   type: "",
   serial_tag: "",
+  tag: "",
   category: "Tool",
   status: "available",
   quantity: 1,
@@ -139,7 +141,8 @@ const Inventory = () => {
       Model: t.model || "",
       Category: t.category || "",
       Type: t.type || "",
-      "Serial/TAG": t.serial_tag || "",
+      "Serial / Série": t.serial_tag || "",
+      TAG: t.tag || "",
       Status: t.status,
       Quantity: t.quantity,
       "Out of service": t.quantity_out_of_service,
@@ -282,10 +285,15 @@ const Inventory = () => {
       toast.error("Code and Name are required / Código e Nome obrigatórios");
       return;
     }
+    if (form.tag && !/^\d{4}$/.test(String(form.tag).trim())) {
+      toast.error("TAG must be 4 digits / TAG deve ter 4 dígitos");
+      return;
+    }
+    const tagValue = form.tag ? String(form.tag).trim() : null;
     if (editId) {
       run(
-        `UPDATE tools SET code=?, name=?, brand=?, model=?, type=?, serial_tag=?, category=?, status=?, acquisition_date=?, value_eur=?, quantity=?, notes=?, photo_url=?, requires_calibration=?, requires_inspection=? WHERE id=?`,
-        [form.code, form.name, form.brand || null, form.model || null, form.type || null, form.serial_tag || null,
+        `UPDATE tools SET code=?, name=?, brand=?, model=?, type=?, serial_tag=?, tag=?, category=?, status=?, acquisition_date=?, value_eur=?, quantity=?, notes=?, photo_url=?, requires_calibration=?, requires_inspection=? WHERE id=?`,
+        [form.code, form.name, form.brand || null, form.model || null, form.type || null, form.serial_tag || null, tagValue,
          form.category || null, form.status || "available",
          form.acquisition_date || null, Number(form.value_eur) || 0, Number(form.quantity) || 1,
          form.notes || null, form.photo_url || null,
@@ -294,9 +302,9 @@ const Inventory = () => {
       toast.success("Tool updated / Ferramenta atualizada");
     } else {
       run(
-        `INSERT INTO tools (id, code, name, brand, model, type, serial_tag, category, status, acquisition_date, value_eur, quantity, notes, photo_url, requires_calibration, requires_inspection)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-        [uid(), form.code, form.name, form.brand || null, form.model || null, form.type || null, form.serial_tag || null,
+        `INSERT INTO tools (id, code, name, brand, model, type, serial_tag, tag, category, status, acquisition_date, value_eur, quantity, notes, photo_url, requires_calibration, requires_inspection)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [uid(), form.code, form.name, form.brand || null, form.model || null, form.type || null, form.serial_tag || null, tagValue,
          form.category || null, form.status || "available",
          form.acquisition_date || null, Number(form.value_eur) || 0, Number(form.quantity) || 1,
          form.notes || null, form.photo_url || null,
@@ -400,7 +408,8 @@ const Inventory = () => {
               <TableHead><BiLabel en="Brand" pt="Marca" size="table" /></TableHead>
               <TableHead><BiLabel en="Category" pt="Categoria" size="table" /></TableHead>
               <TableHead><BiLabel en="Type" pt="Tipo" size="table" /></TableHead>
-              <TableHead><BiLabel en="Serial/TAG" pt="Série/TAG" size="table" /></TableHead>
+              <TableHead><BiLabel en="Serial" pt="Série" size="table" /></TableHead>
+              <TableHead><BiLabel en="TAG" pt="TAG" size="table" /></TableHead>
               <TableHead><BiLabel en="Status" pt="Status" size="table" /></TableHead>
               <TableHead className="text-right"><BiLabel en="Qty" pt="Qtd" size="table" /></TableHead>
               <TableHead className="text-right"><BiLabel en="Value" pt="Valor" size="table" /></TableHead>
@@ -410,7 +419,7 @@ const Inventory = () => {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={12} className="text-center py-10">
+                <TableCell colSpan={13} className="text-center py-10">
                   <BiLabel en="No tools found" pt="Nenhuma ferramenta encontrada" className="items-center" />
                 </TableCell>
               </TableRow>
@@ -456,6 +465,7 @@ const Inventory = () => {
                   <TableCell>{t.category || "—"}</TableCell>
                   <TableCell>{t.type || "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{t.serial_tag || "—"}</TableCell>
+                  <TableCell className="font-mono text-xs">{t.tag || "—"}</TableCell>
                   <TableCell>
                     {t.requires_calibration && ["red", "never"].includes(getCalibrationStatus(t.next_calibration_date))
                       ? statusBadge("calibration")
@@ -561,8 +571,19 @@ const Inventory = () => {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label><BiLabel en="Serial/TAG" pt="Série/TAG" size="small" /></Label>
+              <Label><BiLabel en="Serial" pt="Série" size="small" /></Label>
               <Input value={form.serial_tag || ""} onChange={(e) => setForm({ ...form, serial_tag: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label><BiLabel en="TAG (4 digits)" pt="TAG (4 dígitos)" size="small" /></Label>
+              <Input
+                inputMode="numeric"
+                maxLength={4}
+                pattern="\d{4}"
+                placeholder="0000"
+                value={form.tag || ""}
+                onChange={(e) => setForm({ ...form, tag: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+              />
             </div>
             <div className="space-y-1">
               <Label><BiLabel en="Quantity" pt="Quantidade" size="small" /></Label>
@@ -724,8 +745,8 @@ const Inventory = () => {
               <div className="space-y-1">
                 <Label>
                   <BiLabel
-                    en="TAG numbers (one per line)"
-                    pt="Números TAG (um por linha)"
+                    en="TAGs (4 digits, one per line)"
+                    pt="TAGs (4 dígitos, um por linha)"
                     size="small"
                   />
                 </Label>
@@ -733,13 +754,13 @@ const Inventory = () => {
                   rows={6}
                   value={batchTags}
                   onChange={(e) => setBatchTags(e.target.value)}
-                  placeholder={`TAG-001\nTAG-002\nTAG-003`}
+                  placeholder={`0001\n0002\n0003`}
                   className="font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
                   <BiLabel
-                    en={`Must have exactly ${batchQty} line(s)`}
-                    pt={`Deve ter exatamente ${batchQty} linha(s)`}
+                    en={`Must have exactly ${batchQty} line(s) of 4 digits`}
+                    pt={`Deve ter exatamente ${batchQty} linha(s) de 4 dígitos`}
                     size="small"
                   />
                 </p>
@@ -767,14 +788,18 @@ const Inventory = () => {
                   );
                   return;
                 }
+                if (!tags.every((t) => /^\d{4}$/.test(t))) {
+                  toast.error("Each TAG must be 4 digits / Cada TAG deve ter 4 dígitos");
+                  return;
+                }
                 const src = batchSource;
                 let baseNum = parseInt(nextCode(), 10);
                 for (const tag of tags) {
                   const newCode = String(baseNum).padStart(5, "0");
                   baseNum += 1;
                   run(
-                    `INSERT INTO tools (id, code, name, brand, model, type, serial_tag, category, status, acquisition_date, value_eur, quantity, notes, photo_url, requires_calibration, requires_inspection)
-                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+                    `INSERT INTO tools (id, code, name, brand, model, type, serial_tag, tag, category, status, acquisition_date, value_eur, quantity, notes, photo_url, requires_calibration, requires_inspection)
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
                     [
                       uid(),
                       newCode,
@@ -782,6 +807,7 @@ const Inventory = () => {
                       src.brand,
                       src.model,
                       src.type,
+                      src.serial_tag,
                       tag,
                       src.category,
                       "available",
