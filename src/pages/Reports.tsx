@@ -140,11 +140,24 @@ const Reports = () => {
 
     const drawHeaderFooter = () => {
       if (logoData) {
-        doc.addImage(logoData, "PNG", 10, 6, 25, 14);
+        doc.addImage(logoData, "PNG", 10, 5, 25, 14);
       }
+      
+      const titlePt = type === "analytic" ? "Inventário Analítico" : "Inventário Sintético";
+      const titleEn = type === "analytic" ? "Analytic Inventory" : "Synthetic Inventory";
+
       doc.setFontSize(14);
-      doc.text(type === "analytic" ? "Inventário Analítico / Analytic Inventory" : "Inventário Sintético / Synthetic Inventory", 40, 15);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(40);
+      doc.text(titlePt, 40, 12);
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(100);
+      doc.text(titleEn, 40, 18);
+
       doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
       doc.text(new Date().toLocaleString(), pageWidth - 10, 10, { align: "right" });
       doc.line(10, 23, pageWidth - 10, 23);
       
