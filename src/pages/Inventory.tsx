@@ -684,7 +684,7 @@ const Inventory = () => {
           {quickView && (
             <div className="flex flex-col items-center gap-4">
               {quickView.photo_url ? (
-                <img src={quickView.photo_url} alt={quickView.name} className="h-60 w-60 rounded-lg object-cover border" />
+                <img src={quickView.photo_url} alt={quickView.name} className="h-60 w-60 rounded-lg object-contain border bg-white" />
               ) : (
                 <div className="h-60 w-60 rounded-lg bg-muted flex items-center justify-center border">
                   <Eye className="h-12 w-12 text-muted-foreground" />
@@ -791,7 +791,7 @@ const Inventory = () => {
                 const src = batchSource;
                 let baseNum = parseInt(nextCode(), 10);
                 for (const tag of tags) {
-                  const newCode = String(baseNum).padStart(5, "0");
+                  const newCode = String(baseNum).padStart(4, "0");
                   baseNum += 1;
                   run(
                     `INSERT INTO tools (id, code, name, brand, model, type, serial_tag, tag, category, status, acquisition_date, value_eur, quantity, notes, photo_url, requires_calibration, requires_inspection)
