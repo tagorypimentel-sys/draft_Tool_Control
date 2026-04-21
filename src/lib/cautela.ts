@@ -147,12 +147,12 @@ export async function exportCautelaPDF(cautelaId: string) {
 
   const body = items.map((it) => {
     const total = (it.unit_value_eur || 0) * it.qty_out;
-    const st = [it.tag, it.serial_tag].filter(Boolean).join(" / ") || "—";
     return [
       String(it.qty_out),
       it.name,
       it.brand || "—",
-      st,
+      it.serial_tag || "—",
+      it.tag || "—",
       formatEUR(total),
     ];
   });
@@ -170,12 +170,13 @@ export async function exportCautelaPDF(cautelaId: string) {
         "Qty / Qtd",
         "Name / Nome",
         "Brand / Marca",
-        "Serial / TAG",
+        "Serial",
+        "TAG",
         "Total (€)",
       ],
     ],
     body,
-    foot: [["", "", "", "TOTAL", formatEUR(grandTotal)]],
+    foot: [["", "", "", "", "TOTAL", formatEUR(grandTotal)]],
     styles: { fontSize: 8, halign: "left" },
     headStyles: { fillColor: [37, 99, 235], halign: "left" },
     footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: "bold", halign: "left" },
@@ -193,6 +194,23 @@ export async function exportCautelaPDF(cautelaId: string) {
     doc.setFontSize(8);
     doc.setTextColor(100);
     doc.text(`Page ${i} of ${total} / Página ${i} de ${total}`, pageWidth / 2, pageHeight - 6, { align: "center" });
+    doc.text("KOE Draft Tool Control", pageWidth - 14, pageHeight - 6, { align: "right" });
+    
+    // Signature lines on the last page
+    if (i === total) {
+      const sigY = pageHeight - 35;
+      doc.setDrawColor(0);
+      doc.line(14, sigY, 90, sigY);
+      doc.line(pageWidth - 90, sigY, pageWidth - 14, sigY);
+      
+      doc.setFontSize(8);
+      doc.setTextColor(0);
+      doc.text(technician, 14, sigY + 4);
+      doc.text("Technician / Técnico", 14, sigY + 8);
+      
+      doc.text(cautela.delivered_by || "—", pageWidth - 14, sigY + 4, { align: "right" });
+      doc.text("Delivered by / Entregue por", pageWidth - 14, sigY + 8, { align: "right" });
+    }
   }
 
   doc.save(`Cautela_${cautela.number}.pdf`);
@@ -218,21 +236,23 @@ export function exportCautelaExcel(cautelaId: string) {
     "Qty / Qtd",
     "Name / Nome",
     "Brand / Marca",
-    "Serial / TAG",
+    "Serial",
+    "TAG",
     "Total (€)",
   ];
   const rows: (string | number)[][] = items.map((it) => [
     it.qty_out,
     it.name,
     it.brand || "",
-    [it.tag, it.serial_tag].filter(Boolean).join(" / ") || "",
+    it.serial_tag || "",
+    it.tag || "",
     (it.unit_value_eur || 0) * it.qty_out,
   ]);
   const grandTotal = items.reduce(
     (s, it) => s + (it.unit_value_eur || 0) * it.qty_out,
     0
   );
-  rows.push(["", "", "", "TOTAL", grandTotal]);
+  rows.push(["", "", "", "", "TOTAL", grandTotal]);
 
   const aoa = [...meta, header, ...rows];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -255,12 +275,12 @@ export function printCautela(cautelaId: string) {
   const rowsHtml = items
     .map((it) => {
       const total = (it.unit_value_eur || 0) * it.qty_out;
-      const st = [it.tag, it.serial_tag].filter(Boolean).join(" / ") || "—";
       return `<tr>
         <td style="text-align:left">${it.qty_out}</td>
         <td>${escapeHtml(it.name)}</td>
         <td>${escapeHtml(it.brand || "—")}</td>
-        <td>${escapeHtml(st)}</td>
+        <td>${escapeHtml(it.serial_tag || "—")}</td>
+        <td>${escapeHtml(it.tag || "—")}</td>
         <td style="text-align:left">${formatEUR(total)}</td>
       </tr>`;
     })
@@ -304,13 +324,14 @@ export function printCautela(cautelaId: string) {
         <th style="text-align:left">Qty / Qtd</th>
         <th>Name / Nome</th>
         <th>Brand / Marca</th>
-        <th>Serial / TAG</th>
+        <th>Serial</th>
+        <th>TAG</th>
         <th style="text-align:left">Total (€)</th>
       </tr>
     </thead>
     <tbody>${rowsHtml}</tbody>
     <tfoot>
-      <tr><td colspan="4" style="text-align:left">TOTAL</td><td style="text-align:left">${formatEUR(grandTotal)}</td></tr>
+      <tr><td colspan="5" style="text-align:left">TOTAL</td><td style="text-align:left">${formatEUR(grandTotal)}</td></tr>
     </tfoot>
   </table>
   <div class="signatures">
