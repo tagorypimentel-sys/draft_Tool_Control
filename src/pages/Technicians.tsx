@@ -11,12 +11,12 @@ import { all, run, uid } from "@/lib/db";
 import { useDb } from "@/hooks/useDb";
 import { toast } from "sonner";
 
-type Tech = { id: string; name: string; email: string | null; contact: string | null };
+type Tech = { id: string; name: string; department: string | null; contact: string | null };
 
 const Technicians = () => {
   const { version, bump } = useDb();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<Partial<Tech>>({ name: "", email: "", contact: "" });
+  const [form, setForm] = useState<Partial<Tech>>({ name: "", department: "", contact: "" });
   const [editId, setEditId] = useState<string | null>(null);
 
   const list = useMemo(() => {
@@ -26,7 +26,7 @@ const Technicians = () => {
 
   const openNew = () => { 
     setEditId(null); 
-    setForm({ name: "", email: "", contact: "" }); 
+    setForm({ name: "", department: "", contact: "" }); 
     setOpen(true); 
   };
   
@@ -43,12 +43,12 @@ const Technicians = () => {
     }
     
     if (editId) {
-      run("UPDATE technicians SET name=?, email=?, contact=? WHERE id=?",
-        [form.name, form.email || null, form.contact || null, editId]);
+      run("UPDATE technicians SET name=?, department=?, contact=? WHERE id=?",
+        [form.name, form.department || null, form.contact || null, editId]);
       toast.success("Updated / Atualizado");
     } else {
-      run("INSERT INTO technicians (id, name, email, contact) VALUES (?,?,?,?)",
-        [uid(), form.name, form.email || null, form.contact || null]);
+      run("INSERT INTO technicians (id, name, department, contact) VALUES (?,?,?,?)",
+        [uid(), form.name, form.department || null, form.contact || null]);
       toast.success("Added / Adicionado");
     }
     setOpen(false); 
@@ -87,7 +87,7 @@ const Technicians = () => {
             {list.map((t) => (
               <TableRow key={t.id}>
                 <TableCell className="font-medium">{t.name}</TableCell>
-                <TableCell>{t.email || "—"}</TableCell>
+                <TableCell>{t.department || "—"}</TableCell>
                 <TableCell>{t.contact || "—"}</TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
@@ -113,7 +113,7 @@ const Technicians = () => {
             </div>
             <div className="space-y-1">
               <Label><BiLabel en="Email" pt="Correio Eletrônico" size="small" /></Label>
-              <Input value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <Input value={form.department || ""} onChange={(e) => setForm({ ...form, department: e.target.value })} />
             </div>
             <div className="space-y-1">
               <Label><BiLabel en="Contact" pt="Contato" size="small" /></Label>
