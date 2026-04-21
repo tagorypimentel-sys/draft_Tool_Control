@@ -294,10 +294,10 @@ const Inventory = () => {
       run(
         `UPDATE tools SET code=?, name=?, brand=?, model=?, type=?, serial_tag=?, tag=?, category=?, status=?, acquisition_date=?, value_eur=?, quantity=?, notes=?, photo_url=?, requires_calibration=?, requires_inspection=? WHERE id=?`,
         [form.code, form.name, form.brand || null, form.model || null, form.type || null, form.serial_tag || null, tagValue,
-         form.category || null, form.status || "available",
-         form.acquisition_date || null, Number(form.value_eur) || 0, Number(form.quantity) || 1,
-         form.notes || null, form.photo_url || null,
-         form.requires_calibration ? 1 : 0, form.requires_inspection ? 1 : 0, editId]
+        form.category || null, form.status || "available",
+        form.acquisition_date || null, Number(form.value_eur) || 0, Number(form.quantity) || 1,
+        form.notes || null, form.photo_url || null,
+        form.requires_calibration ? 1 : 0, form.requires_inspection ? 1 : 0, editId]
       );
       toast.success("Tool updated / Ferramenta atualizada");
     } else {
@@ -305,10 +305,10 @@ const Inventory = () => {
         `INSERT INTO tools (id, code, name, brand, model, type, serial_tag, tag, category, status, acquisition_date, value_eur, quantity, notes, photo_url, requires_calibration, requires_inspection)
          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [uid(), form.code, form.name, form.brand || null, form.model || null, form.type || null, form.serial_tag || null, tagValue,
-         form.category || null, form.status || "available",
-         form.acquisition_date || null, Number(form.value_eur) || 0, Number(form.quantity) || 1,
-         form.notes || null, form.photo_url || null,
-         form.requires_calibration ? 1 : 0, form.requires_inspection ? 1 : 0]
+        form.category || null, form.status || "available",
+        form.acquisition_date || null, Number(form.value_eur) || 0, Number(form.quantity) || 1,
+        form.notes || null, form.photo_url || null,
+        form.requires_calibration ? 1 : 0, form.requires_inspection ? 1 : 0]
       );
       toast.success("Tool added / Ferramenta adicionada");
     }
@@ -339,7 +339,7 @@ const Inventory = () => {
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" onClick={exportExcel} title="Export to Excel / Exportar para Excel">
             <FileSpreadsheet />
-            <BiLabel en="Excel Test" pt="Excel Teste" size="small" />
+            <BiLabel en="Excel" pt="Excel" size="small" />
           </Button>
           <Button variant="outline" onClick={exportPdf} title="Export to PDF / Exportar para PDF">
             <FileText />
@@ -468,20 +468,16 @@ const Inventory = () => {
                   <TableCell className="font-mono text-xs">{t.serial_tag || "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{t.tag || "—"}</TableCell>
                   <TableCell>
-                    <div className="flex justify-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded border border-dashed border-slate-300">
+                    <div className="flex justify-center gap-2">
                       {t.requires_calibration ? (
-                        <span title="Requires Calibration / Exige Calibração">
-                          <Timer className="h-5 w-5 text-sky-600 dark:text-sky-400" />
-                        </span>
+                        <Timer className="h-4 w-4 text-sky-600 dark:text-sky-400" title="Requires Calibration / Exige Calibração" />
                       ) : (
-                        <div className="h-5 w-5" />
+                        <div className="h-4 w-4" />
                       )}
                       {t.requires_inspection ? (
-                        <span title="Requires Inspection / Exige Inspeção">
-                          <ClipboardCheck className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                        </span>
+                        <ClipboardCheck className="h-4 w-4 text-purple-600 dark:text-purple-400" title="Requires Inspection / Exige Inspeção" />
                       ) : (
-                        <div className="h-5 w-5" />
+                        <div className="h-4 w-4" />
                       )}
                     </div>
                   </TableCell>
