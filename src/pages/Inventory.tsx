@@ -451,12 +451,12 @@ const Inventory = () => {
                   <TableCell>
                     <div className="flex justify-center gap-2">
                       {t.requires_calibration ? (
-                        <Timer className="h-4 w-4 text-sky-600 dark:text-sky-400" title="Requires Calibration / Exige Calibração" />
+                        <span title="Requires Calibration / Exige Calibração"><Timer className="h-4 w-4 text-sky-600 dark:text-sky-400" /></span>
                       ) : (
                         <div className="h-4 w-4" />
                       )}
                       {t.requires_inspection ? (
-                        <ClipboardCheck className="h-4 w-4 text-purple-600 dark:text-purple-400" title="Requires Inspection / Exige Inspeção" />
+                        <span title="Requires Inspection / Exige Inspeção"><ClipboardCheck className="h-4 w-4 text-purple-600 dark:text-purple-400" /></span>
                       ) : (
                         <div className="h-4 w-4" />
                       )}
