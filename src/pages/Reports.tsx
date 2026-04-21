@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileSpreadsheet, FileText, LayoutList, ListChecks, History, UserSearch, Eye, X, FilterX, Search } from "lucide-react";
+import { FileSpreadsheet, FileText, LayoutList, ListChecks, History, UserSearch, Eye, X, Search } from "lucide-react";
 import { all } from "@/lib/db";
 import { useDb } from "@/hooks/useDb";
 import * as XLSX from "xlsx";
@@ -27,7 +27,7 @@ const Reports = () => {
   // States para Rastreabilidade por Item
   const [selectedToolId, setSelectedToolId] = useState("");
   const [traceSearch, setTraceSearch] = useState("");
-  const [traceType, setTraceType] = useState("all"); // Mudado de Category para Type
+  const [traceType, setTraceType] = useState("all");
   const [traceTag, setTraceTag] = useState("");
 
   // State para Técnico
@@ -58,7 +58,7 @@ const Reports = () => {
     });
   }, [allTools, invSearch, invCategory, invTag]);
 
-  // Ferramentas filtradas para a SELEÇÃO na Rastreabilidade (Agora usa TYPE)
+  // Ferramentas filtradas para a SELEÇÃO na Rastreabilidade
   const filteredTraceTools = useMemo(() => {
     return allTools.filter(t => {
       const mS = !traceSearch || t.name.toLowerCase().includes(traceSearch.toLowerCase()) || t.code.toLowerCase().includes(traceSearch.toLowerCase());
@@ -98,8 +98,7 @@ const Reports = () => {
   };
 
   const exportExcel = (data: any[], filename: string) => {
-    const rows = data.map(t => ({ Code: t.code, Name: t.name, TAG: t.tag || "", Qty: t.quantity, Total: (t.value_eur || 0) * t.quantity }));
-    const ws = XLSX.utils.json_to_sheet(rows);
+    const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Report");
     XLSX.writeFile(wb, `${filename}.xlsx`);
@@ -116,12 +115,12 @@ const Reports = () => {
             <h3 className="font-bold text-lg">Inventário de Ferramentas</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-1"><Label className="text-[10px] uppercase font-bold">Busca / Search</Label><Input value={invSearch} onChange={e => setInvSearch(e.target.value)} placeholder="Código ou nome..." className="bg-white" /></div>
-          <div className="space-y-1"><Label className="text-[10px] uppercase font-bold">Categoria</Label>
+          <div className="space-y-1"><Label className="text-[10px] uppercase font-bold text-slate-500">Busca / Search</Label><Input value={invSearch} onChange={e => setInvSearch(e.target.value)} placeholder="Código ou nome..." className="bg-white" /></div>
+          <div className="space-y-1"><Label className="text-[10px] uppercase font-bold text-slate-500">Categoria</Label>
             <Select value={invCategory} onValueChange={setInvCategory}><SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="all">Todas as Categorias</SelectItem>{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
           </div>
-          <div className="space-y-1"><Label className="text-[10px] uppercase font-bold">TAG</Label><Input value={invTag} onChange={e => setInvTag(e.target.value)} placeholder="0000" className="bg-white" /></div>
+          <div className="space-y-1"><Label className="text-[10px] uppercase font-bold text-slate-500">TAG</Label><Input value={invTag} onChange={e => setInvTag(e.target.value)} placeholder="0000" className="bg-white" /></div>
         </div>
         <div className="flex gap-2 pt-2">
           <Button className="flex-1" variant="outline" onClick={() => handlePreviewInventory("analytic")}><Eye className="mr-2 h-4 w-4" />Ver Analítico</Button>
@@ -138,25 +137,25 @@ const Reports = () => {
               <h3 className="font-bold">Rastreabilidade por Item</h3>
           </div>
           
-          <div className="grid grid-cols-1 gap-3 p-3 bg-white/50 rounded-lg border border-green-100">
+          <div className="grid grid-cols-1 gap-3 p-3 bg-white/50 rounded-lg border border-green-100 shadow-inner">
             <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                     <Label className="text-[10px] uppercase font-bold text-green-700">Tipo / Type</Label>
                     <Select value={traceType} onValueChange={setTraceType}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos" /></SelectTrigger>
+                        <SelectTrigger className="h-8 text-xs bg-white"><SelectValue placeholder="Todos" /></SelectTrigger>
                         <SelectContent><SelectItem value="all">Todos</SelectItem>{types.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                     </Select>
                 </div>
                 <div className="space-y-1">
                     <Label className="text-[10px] uppercase font-bold text-green-700">Filtrar TAG</Label>
-                    <Input className="h-8 text-xs" value={traceTag} onChange={e => setTraceTag(e.target.value)} placeholder="TAG..." />
+                    <Input className="h-8 text-xs bg-white" value={traceTag} onChange={e => setTraceTag(e.target.value)} placeholder="TAG..." />
                 </div>
             </div>
             <div className="space-y-1">
                 <Label className="text-[10px] uppercase font-bold text-green-700">Busca Rápida de Ferramenta</Label>
                 <div className="relative">
                     <Search className="absolute left-2 top-2 h-3 w-3 text-muted-foreground" />
-                    <Input className="h-8 pl-7 text-xs" value={traceSearch} onChange={e => setTraceSearch(e.target.value)} placeholder="Nome ou código..." />
+                    <Input className="h-8 pl-7 text-xs bg-white" value={traceSearch} onChange={e => setTraceSearch(e.target.value)} placeholder="Nome ou código..." />
                 </div>
             </div>
           </div>
@@ -164,7 +163,7 @@ const Reports = () => {
           <div className="space-y-1">
             <Label className="text-xs font-bold">Selecione a Ferramenta:</Label>
             <Select value={selectedToolId} onValueChange={setSelectedToolId}>
-                <SelectTrigger><SelectValue placeholder="Escolha um item da lista filtrada..." /></SelectTrigger>
+                <SelectTrigger className="bg-white"><SelectValue placeholder="Escolha um item da lista filtrada..." /></SelectTrigger>
                 <SelectContent>
                     {filteredTraceTools.length === 0 ? (
                         <SelectItem value="_" disabled>Nenhum item encontrado</SelectItem>
@@ -184,9 +183,9 @@ const Reports = () => {
               <h3 className="font-bold">Histórico por Técnico</h3>
           </div>
           <div className="space-y-1 py-12">
-            <Label className="text-xs font-bold">Técnico / Technician</Label>
+            <Label className="text-xs font-bold text-purple-700">Selecione o Técnico / Technician</Label>
             <Select value={selectedTechId} onValueChange={setSelectedTechId}>
-                <SelectTrigger><SelectValue placeholder="Selecione o técnico..." /></SelectTrigger>
+                <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione o técnico..." /></SelectTrigger>
                 <SelectContent>{technicians.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
