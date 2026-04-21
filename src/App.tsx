@@ -7,7 +7,6 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import { DbProvider } from "@/hooks/useDb";
 import { LanguageProvider } from "@/hooks/useLanguage";
 import AppLayout from "@/components/AppLayout";
-import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import Technicians from "./pages/Technicians";
 import Settings from "./pages/Settings";
@@ -29,8 +28,8 @@ const App = () => (
             <BrowserRouter>
               <Routes>
                 <Route element={<AppLayout />}>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/inventory" element={<Inventory />} />
+                  {/* Voltei o Inventory como / para teste de carregamento */}
+                  <Route path="/" element={<Inventory />} />
                   <Route path="/movements" element={<Movements />} />
                   <Route path="/calibration" element={<Calibration />} />
                   <Route path="/reports" element={<Reports />} />
