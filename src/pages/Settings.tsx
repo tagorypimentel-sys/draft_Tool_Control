@@ -9,6 +9,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { exportDbBytes, importDbBytes, all, run } from "@/lib/db";
 import { useDb } from "@/hooks/useDb";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 const Settings = () => {
   const { theme, toggle } = useTheme();
