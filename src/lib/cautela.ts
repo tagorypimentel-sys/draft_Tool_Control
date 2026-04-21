@@ -84,8 +84,8 @@ export function getCautelaWithItems(cautelaId: string) {
     all<{ name: string }>("SELECT name FROM technicians WHERE id=?", [
       cautela.technician_id,
     ])[0]?.name || "—";
-  const items = all<CautelaItemFull>(
-    `SELECT ci.*, t.code, t.name, t.brand, t.category, t.type, t.serial_tag
+  const items = all<CautelaItemFull & { tag: string | null }>(
+    `SELECT ci.*, t.code, t.name, t.brand, t.category, t.type, t.serial_tag, t.tag
      FROM cautela_items ci
      JOIN tools t ON t.id = ci.tool_id
      WHERE ci.cautela_id = ?`,
@@ -114,8 +114,13 @@ export async function exportCautelaPDF(cautelaId: string) {
       try { doc.addImage(logo.dataUrl, "PNG", 14, 8, logoW, logoH); } catch { /* noop */ }
     }
     doc.setFontSize(14);
-    doc.setTextColor(0);
-    doc.text(`KOE Draft Tool Control — Cautela ${cautela.number}`, 14 + logoW + 4, 17);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(40);
+    doc.text("KOE Draft Tool Control", 14 + logoW + 4, 13);
+    
+    doc.setFontSize(16);
+    doc.setTextColor(37, 99, 235); // Blue color for highlights
+    doc.text(`Cautela ${cautela.number}`, 14 + logoW + 4, 20);
     doc.setDrawColor(200);
     doc.setLineWidth(0.2);
     doc.line(14, 25, pageWidth - 14, 25);
@@ -142,12 +147,12 @@ export async function exportCautelaPDF(cautelaId: string) {
 
   const body = items.map((it) => {
     const total = (it.unit_value_eur || 0) * it.qty_out;
+    const st = [it.tag, it.serial_tag].filter(Boolean).join(" / ") || "—";
     return [
       String(it.qty_out),
       it.name,
       it.brand || "—",
-      it.serial_tag || "—",
-      it.type || "—",
+      st,
       formatEUR(total),
     ];
   });
@@ -166,15 +171,14 @@ export async function exportCautelaPDF(cautelaId: string) {
         "Name / Nome",
         "Brand / Marca",
         "Serial / TAG",
-        "Type / Tipo",
         "Total (€)",
       ],
     ],
     body,
-    foot: [["", "", "", "", "TOTAL", formatEUR(grandTotal)]],
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [37, 99, 235] },
-    footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: "bold" },
+    foot: [["", "", "", "TOTAL", formatEUR(grandTotal)]],
+    styles: { fontSize: 8, halign: "left" },
+    headStyles: { fillColor: [37, 99, 235], halign: "left" },
+    footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: "bold", halign: "left" },
     didDrawPage: () => {
       if (firstPage) { firstPage = false; return; }
       drawHeaderFooter();
@@ -215,22 +219,20 @@ export function exportCautelaExcel(cautelaId: string) {
     "Name / Nome",
     "Brand / Marca",
     "Serial / TAG",
-    "Type / Tipo",
     "Total (€)",
   ];
   const rows: (string | number)[][] = items.map((it) => [
     it.qty_out,
     it.name,
     it.brand || "",
-    it.serial_tag || "",
-    it.type || "",
+    [it.tag, it.serial_tag].filter(Boolean).join(" / ") || "",
     (it.unit_value_eur || 0) * it.qty_out,
   ]);
   const grandTotal = items.reduce(
     (s, it) => s + (it.unit_value_eur || 0) * it.qty_out,
     0
   );
-  rows.push(["", "", "", "", "TOTAL", grandTotal]);
+  rows.push(["", "", "", "TOTAL", grandTotal]);
 
   const aoa = [...meta, header, ...rows];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -252,14 +254,13 @@ export function printCautela(cautelaId: string) {
 
   const rowsHtml = items
     .map((it) => {
-      const total = (it.unit_value_eur || 0) * it.qty_out;
+      const st = [it.tag, it.serial_tag].filter(Boolean).join(" / ") || "—";
       return `<tr>
-        <td style="text-align:right">${it.qty_out}</td>
+        <td style="text-align:left">${it.qty_out}</td>
         <td>${escapeHtml(it.name)}</td>
         <td>${escapeHtml(it.brand || "—")}</td>
-        <td>${escapeHtml(it.serial_tag || "—")}</td>
-        <td>${escapeHtml(it.type || "—")}</td>
-        <td style="text-align:right">${formatEUR(total)}</td>
+        <td>${escapeHtml(st)}</td>
+        <td style="text-align:left">${formatEUR(total)}</td>
       </tr>`;
     })
     .join("");
@@ -299,17 +300,16 @@ export function printCautela(cautelaId: string) {
   <table>
     <thead>
       <tr>
-        <th style="text-align:right">Qty / Qtd</th>
+        <th style="text-align:left">Qty / Qtd</th>
         <th>Name / Nome</th>
         <th>Brand / Marca</th>
         <th>Serial / TAG</th>
-        <th>Type / Tipo</th>
-        <th style="text-align:right">Total (€)</th>
+        <th style="text-align:left">Total (€)</th>
       </tr>
     </thead>
     <tbody>${rowsHtml}</tbody>
     <tfoot>
-      <tr><td colspan="5" style="text-align:right">TOTAL</td><td style="text-align:right">${formatEUR(grandTotal)}</td></tr>
+      <tr><td colspan="4" style="text-align:left">TOTAL</td><td style="text-align:left">${formatEUR(grandTotal)}</td></tr>
     </tfoot>
   </table>
   <div class="signatures">
