@@ -218,8 +218,8 @@ const Reports = () => {
       body: body,
       startY: 28,
       didDrawPage: drawHeaderFooter,
-      headStyles: { fillColor: [37, 99, 235], fontSize: 8, halign: 'center', valign: 'middle' },
-      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [37, 99, 235], fontSize: 8, halign: 'left', valign: 'middle' },
+      styles: { fontSize: 8, cellPadding: 2, halign: 'left' },
       theme: 'striped',
       columnStyles: {
         0: { cellWidth: 'auto' },
