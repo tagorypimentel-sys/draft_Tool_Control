@@ -83,16 +83,30 @@ const Settings = () => {
       };
 
       let importedCount = 0;
+      
+      // Get max existing code for sequence
+      const existing = all<{ code: string }>("SELECT code FROM tools WHERE code GLOB '[0-9][0-9][0-9][0-9]' ORDER BY code DESC LIMIT 1");
+      let nextNum = existing.length > 0 ? parseInt(existing[0].code, 10) + 1 : 1;
+
       data.forEach((item: any) => {
         const name = map(item, ["Nome", "Name", "Descrição", "Description"]);
         if (!name) return; // Skip items without name
 
-        const code = map(item, ["Código", "Code", "ID"]) || String(Date.now() + importedCount).slice(-5);
+        let code = map(item, ["Código", "Code", "ID"]);
+        if (code) {
+          code = String(code).padStart(4, "0");
+        } else {
+          code = String(nextNum).padStart(4, "0");
+          nextNum++;
+        }
+
         const brand = map(item, ["Marca", "Brand", "Fabricante"]);
         const model = map(item, ["Modelo", "Model"]);
         const type = map(item, ["Tipo", "Type", "Categoria"]);
         const serial = map(item, ["Série", "Serial", "S/N"]);
-        const tag = map(item, ["TAG"]);
+        let tag = map(item, ["TAG"]);
+        if (tag) tag = String(tag).padStart(4, "0");
+
         const qty = parseInt(map(item, ["Quantidade", "Qty", "Qtd", "Quantity"])) || 1;
         const val = parseFloat(map(item, ["Valor", "Value", "Price", "Preço"])) || 0;
         const cal = map(item, ["Calibração", "Calibration", "Exige"]) ? 1 : 0;

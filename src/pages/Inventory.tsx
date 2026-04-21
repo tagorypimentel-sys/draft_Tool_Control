@@ -89,7 +89,7 @@ function nextCode(): string {
     const n = parseInt(r.code, 10);
     if (!isNaN(n) && n > max) max = n;
   }
-  return String(max + 1).padStart(5, "0");
+  return String(max + 1).padStart(4, "0");
 }
 
 const Inventory = () => {
@@ -289,7 +289,7 @@ const Inventory = () => {
       toast.error("TAG must be 4 digits / TAG deve ter 4 dígitos");
       return;
     }
-    const tagValue = form.tag ? String(form.tag).trim() : null;
+    const tagValue = form.tag ? String(form.tag).trim().padStart(4, "0") : null;
     if (editId) {
       run(
         `UPDATE tools SET code=?, name=?, brand=?, model=?, type=?, serial_tag=?, tag=?, category=?, status=?, acquisition_date=?, value_eur=?, quantity=?, notes=?, photo_url=?, requires_calibration=?, requires_inspection=? WHERE id=?`,
