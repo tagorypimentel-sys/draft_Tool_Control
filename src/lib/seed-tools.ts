@@ -1,7 +1,7 @@
 import { all, run, uid } from "./db";
 import { TOOLS_DATA } from "./seed-tools-data";
 
-const SEED_KEY = "tools_initial_seed_v2";
+const SEED_KEY = "tools_initial_seed_v3";
 
 const STATUS_MAP: Record<string, string> = {
   Available: "available",
