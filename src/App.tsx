@@ -12,6 +12,7 @@ import Technicians from "./pages/Technicians";
 import Settings from "./pages/Settings";
 import Movements from "./pages/Movements";
 import Reports from "./pages/Reports";
+import Calibration from "./pages/Calibration";
 import { Reports as ReportsPlaceholder } from "./pages/Placeholders";
 import NotFound from "./pages/NotFound";
 
