@@ -7,12 +7,13 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import { DbProvider } from "@/hooks/useDb";
 import { LanguageProvider } from "@/hooks/useLanguage";
 import AppLayout from "@/components/AppLayout";
+import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import Technicians from "./pages/Technicians";
 import Settings from "./pages/Settings";
 import Movements from "./pages/Movements";
 import Calibration from "./pages/Calibration";
-import { Reports } from "./pages/Placeholders";
+import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,7 +29,8 @@ const App = () => (
             <BrowserRouter>
               <Routes>
                 <Route element={<AppLayout />}>
-                  <Route path="/" element={<Inventory />} />
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/inventory" element={<Inventory />} />
                   <Route path="/movements" element={<Movements />} />
                   <Route path="/calibration" element={<Calibration />} />
                   <Route path="/reports" element={<Reports />} />
