@@ -8,8 +8,7 @@ import { DbProvider } from "@/hooks/useDb";
 import { LanguageProvider } from "@/hooks/useLanguage";
 import AppLayout from "@/components/AppLayout";
 import Inventory from "./pages/Inventory";
-import Technicians from "./pages/Technicians";
-import Clients from "./pages/Clients";
+import Registers from "./pages/Registers";
 import Settings from "./pages/Settings";
 import Movements from "./pages/Movements";
 import Calibration from "./pages/Calibration";
@@ -33,8 +32,7 @@ const App = () => (
                   <Route path="/movements" element={<Movements />} />
                   <Route path="/calibration" element={<Calibration />} />
                   <Route path="/reports" element={<Reports />} />
-                  <Route path="/technicians" element={<Technicians />} />
-                  <Route path="/clients" element={<Clients />} />
+                  <Route path="/registers" element={<Registers />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />

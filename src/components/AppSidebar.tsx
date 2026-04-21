@@ -1,4 +1,4 @@
-import { Wrench, ArrowLeftRight, Crosshair, BarChart2, UserCheck, Settings, Building2 } from "lucide-react";
+import { Wrench, ArrowLeftRight, Crosshair, BarChart2, Settings, ClipboardList } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -23,8 +23,7 @@ const items = [
   { en: "Movements", pt: "Movimentações", url: "/movements", icon: ArrowLeftRight, badge: true },
   { en: "Calibration", pt: "Calibração", url: "/calibration", icon: Crosshair, calibration: true },
   { en: "Reports", pt: "Relatórios", url: "/reports", icon: BarChart2 },
-  { en: "Technician Register", pt: "Cadastro de Técnicos", url: "/technicians", icon: UserCheck },
-  { en: "Clients Register", pt: "Cadastro de Clientes", url: "/clients", icon: Building2 },
+  { en: "Registers", pt: "Cadastros", url: "/registers", icon: ClipboardList },
 ];
 
 export function AppSidebar() {
