@@ -15,7 +15,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Search, Upload, X, Eye, Copy, FileSpreadsheet, FileText, Timer, ClipboardCheck } from "lucide-react";
+import { Plus, Pencil, Search, Upload, X, Eye, Copy, FileSpreadsheet, FileText, Timer, ClipboardCheck, RotateCcw } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -420,8 +420,35 @@ const Inventory = () => {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={13} className="text-center py-10">
-                  <BiLabel en="No tools found" pt="Nenhuma ferramenta encontrada" className="items-center" />
+                <TableCell colSpan={14} className="text-center py-20">
+                  <div className="flex flex-col items-center gap-4">
+                    <BiLabel en="No tools found" pt="Nenhuma ferramenta encontrada" />
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => (document.getElementById('import-db-empty') as HTMLInputElement)?.click()}>
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                        <BiLabel en="Restore Backup (.sqlite)" pt="Restaurar Backup (.sqlite)" size="small" />
+                      </Button>
+                      <input
+                        id="import-db-empty"
+                        type="file"
+                        accept=".sqlite"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = async (ev) => {
+                              const bytes = new Uint8Array(ev.target?.result as ArrayBuffer);
+                              const { importDbBytes } = await import("@/lib/db");
+                              await importDbBytes(bytes);
+                              window.location.reload();
+                            };
+                            reader.readAsArrayBuffer(file);
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
