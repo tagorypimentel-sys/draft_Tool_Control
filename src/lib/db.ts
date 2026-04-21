@@ -126,7 +126,6 @@ const ALTERS = [
   "ALTER TABLE tools ADD COLUMN calibration_frequency INTEGER",
   "ALTER TABLE tools ADD COLUMN tag TEXT",
   "ALTER TABLE cautelas ADD COLUMN delivered_by TEXT",
-  "ALTER TABLE technicians ADD COLUMN email TEXT",
   `CREATE VIEW IF NOT EXISTS v_calibration_status AS
    SELECT
      t.id AS tool_id,
