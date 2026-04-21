@@ -442,25 +442,6 @@ const Inventory = () => {
                   <TableCell className="font-mono text-sm">{t.code}</TableCell>
                   <TableCell className="font-medium">
                     {t.name}
-                    {(t.requires_calibration || t.requires_inspection) ? (
-                      <div className="flex gap-1 mt-1 flex-wrap">
-                        {t.requires_calibration ? (() => {
-                          const cs = getCalibrationStatus(t.next_calibration_date);
-                          const cls = CALIBRATION_STATUS_CLASSES[cs];
-                          return (
-                            <span
-                              className={`text-[9px] px-1 rounded border ${cls.badge}`}
-                              title={getCalibrationBadgeLabel(cs, lang)}
-                            >
-                              CAL
-                            </span>
-                          );
-                        })() : null}
-                        {t.requires_inspection ? (
-                          <span className="text-[9px] bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 px-1 rounded">INSP</span>
-                        ) : null}
-                      </div>
-                    ) : null}
                   </TableCell>
                   <TableCell>{t.brand || "—"}</TableCell>
                   <TableCell>{t.category || "—"}</TableCell>
