@@ -19,7 +19,7 @@ export const DbProvider = ({ children }: { children: ReactNode }) => {
       try {
         const result = seedToolsIfNeeded();
         if (result.imported > 0) {
-          console.log(`[seed] Imported ${result.imported} tools from KOE catalog`);
+          console.log(`[seed] Imported ${result.imported} new tools (skipped ${result.skipped} already present)`);
         }
       } catch (e) {
         console.error("[seed] Failed to import initial tools", e);
