@@ -339,7 +339,7 @@ const Inventory = () => {
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" onClick={exportExcel} title="Export to Excel / Exportar para Excel">
             <FileSpreadsheet />
-            <BiLabel en="Excel" pt="Excel" size="small" />
+            <BiLabel en="Excel Test" pt="Excel Teste" size="small" />
           </Button>
           <Button variant="outline" onClick={exportPdf} title="Export to PDF / Exportar para PDF">
             <FileText />
