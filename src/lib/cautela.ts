@@ -254,6 +254,7 @@ export function printCautela(cautelaId: string) {
 
   const rowsHtml = items
     .map((it) => {
+      const total = (it.unit_value_eur || 0) * it.qty_out;
       const st = [it.tag, it.serial_tag].filter(Boolean).join(" / ") || "—";
       return `<tr>
         <td style="text-align:left">${it.qty_out}</td>
