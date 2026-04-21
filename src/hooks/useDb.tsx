@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { getDb } from "@/lib/db";
+import { seedToolsIfNeeded } from "@/lib/seed-tools";
 
 interface DbContextValue {
   ready: boolean;
@@ -14,7 +15,17 @@ export const DbProvider = ({ children }: { children: ReactNode }) => {
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
-    getDb().then(() => setReady(true));
+    getDb().then(() => {
+      try {
+        const result = seedToolsIfNeeded();
+        if (result.imported > 0) {
+          console.log(`[seed] Imported ${result.imported} tools from KOE catalog`);
+        }
+      } catch (e) {
+        console.error("[seed] Failed to import initial tools", e);
+      }
+      setReady(true);
+    });
   }, []);
 
   return (
