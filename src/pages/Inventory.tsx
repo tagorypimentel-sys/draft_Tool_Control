@@ -335,7 +335,9 @@ const Inventory = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <BiLabel en="Inventory" pt="Inventário" />
+        <div className="flex items-center gap-2">
+          <BiLabel en="Inventory (Synced)" pt="Inventário (Sincronizado)" className="text-red-600" />
+        </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" onClick={exportExcel} title="Export to Excel / Exportar para Excel">
             <FileSpreadsheet />
@@ -468,16 +470,16 @@ const Inventory = () => {
                   <TableCell className="font-mono text-xs">{t.serial_tag || "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{t.tag || "—"}</TableCell>
                   <TableCell>
-                    <div className="flex justify-center gap-2">
+                    <div className="flex justify-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded border border-dashed border-slate-300">
                       {t.requires_calibration ? (
-                        <Timer className="h-4 w-4 text-sky-600 dark:text-sky-400" title="Requires Calibration / Exige Calibração" />
+                        <Timer className="h-5 w-5 text-sky-600 dark:text-sky-400" title="Requires Calibration / Exige Calibração" />
                       ) : (
-                        <div className="h-4 w-4" />
+                        <div className="h-5 w-5" />
                       )}
                       {t.requires_inspection ? (
-                        <ClipboardCheck className="h-4 w-4 text-purple-600 dark:text-purple-400" title="Requires Inspection / Exige Inspeção" />
+                        <ClipboardCheck className="h-5 w-5 text-purple-600 dark:text-purple-400" title="Requires Inspection / Exige Inspeção" />
                       ) : (
-                        <div className="h-4 w-4" />
+                        <div className="h-5 w-5" />
                       )}
                     </div>
                   </TableCell>
