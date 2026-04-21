@@ -108,6 +108,13 @@ CREATE TABLE IF NOT EXISTS calibration_labs (
 CREATE INDEX IF NOT EXISTS idx_calibration_records_tool_id ON calibration_records(tool_id);
 CREATE INDEX IF NOT EXISTS idx_calibration_records_next_due ON calibration_records(next_calibration_date);
 CREATE INDEX IF NOT EXISTS idx_calibration_records_last_date ON calibration_records(last_calibration_date);
+CREATE TABLE IF NOT EXISTS clients (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  contact TEXT,
+  email TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `;
 
 // Idempotent column additions for existing DBs
