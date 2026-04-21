@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Download, Upload, Moon, Sun } from "lucide-react";
+import { Download, Upload, Moon, Sun, Trash2 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { exportDbBytes, importDbBytes, all, run } from "@/lib/db";
 import { useDb } from "@/hooks/useDb";
@@ -49,6 +49,15 @@ const Settings = () => {
     await importDbBytes(new Uint8Array(buf));
     bump();
     toast.success("Backup imported / Backup importado");
+  };
+
+  const clearInventory = () => {
+    if (!confirm("Are you sure you want to delete ALL tools? This cannot be undone!\n\nTem certeza que deseja apagar TODAS as ferramentas? Isso não pode ser desfeito!")) {
+      return;
+    }
+    run("DELETE FROM tools");
+    bump();
+    toast.success("Inventory cleared / Inventário limpo");
   };
 
   return (
@@ -114,6 +123,23 @@ const Settings = () => {
           Data is stored locally in your browser. Export regularly. <br />
           Os dados são armazenados localmente no navegador. Exporte regularmente.
         </p>
+      </Card>
+
+      <Card className="p-4 space-y-4 border-destructive/20 bg-destructive/5">
+        <BiLabel en="Danger Zone" pt="Zona de Perigo" size="small" className="text-destructive" />
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <BiLabel en="Clear Inventory" pt="Limpar Inventário" size="small" />
+            <p className="text-xs text-muted-foreground">
+              Delete all items from the tools table. <br />
+              Apagar todos os itens da tabela de ferramentas.
+            </p>
+          </div>
+          <Button variant="destructive" onClick={clearInventory} size="sm">
+            <Trash2 className="h-4 w-4 mr-2" />
+            <BiLabel en="Clear All" pt="Limpar Tudo" size="small" />
+          </Button>
+        </div>
       </Card>
     </div>
   );
