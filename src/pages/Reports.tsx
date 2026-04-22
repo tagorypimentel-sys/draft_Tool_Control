@@ -147,7 +147,8 @@ const Reports = () => {
         "Total Geral": s.total, 
         "Emprestado": s.out, 
         "Disponível": s.avail, 
-        "Valor Total (Estoque Geral)": s.value 
+        "Valor Unit. Médio": s.total > 0 ? (s.value / s.total) : 0,
+        "Valor Total (Baseado no Total)": s.value 
       }));
       return { headers, pdfData, excelData, title: "Inventário Sintético" };
     }
