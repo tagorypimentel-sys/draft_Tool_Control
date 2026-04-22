@@ -258,14 +258,24 @@ const Reports = () => {
         drawHeader(doc);
       },
       didParseCell: (data) => {
-        if (data.section === 'body') {
-          const cellText = String(data.cell.raw || "");
-          const isTotal = cellText === "TOTAL GERAL";
+        const isAnalytic = title.includes("Analítico");
+        const centerCols = isAnalytic ? [3, 4, 5] : [1, 2, 3];
 
-          if (isTotal) {
-            data.cell.styles.fillColor = [37, 99, 235];
-            data.cell.styles.textColor = [255, 255, 255];
-            data.cell.styles.fontStyle = 'bold';
+        if (centerCols.includes(data.column.index)) {
+          data.cell.styles.halign = 'center';
+        }
+
+        if (data.section === 'body') {
+          const isTotalRow = data.row.raw[0] === "TOTAL GERAL";
+
+          if (isTotalRow) {
+            if (data.column.index < headers.length - 1) {
+              data.cell.styles.fillColor = [37, 99, 235];
+              data.cell.styles.textColor = [255, 255, 255];
+              data.cell.styles.fontStyle = 'bold';
+            } else if (data.column.index === headers.length - 1) {
+              data.cell.styles.fontStyle = 'bold';
+            }
           }
         }
       }
@@ -382,22 +392,31 @@ const Reports = () => {
             <table className="w-full text-xs text-left">
               <thead>
                 <tr className="bg-slate-100 border-b">
-                  {previewHeaders.map((h, idx) => (
-                    <th key={idx} className="p-3 font-bold border-r">{h}</th>
-                  ))}
+                  {previewHeaders.map((h, idx) => {
+                    const isAnalytic = previewTitle.includes("Analítico");
+                    const centerCols = isAnalytic ? [3, 4, 5] : [1, 2, 3];
+                    return (
+                      <th key={idx} className={`p-3 font-bold border-r ${centerCols.includes(idx) ? 'text-center' : ''}`}>{h}</th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
-                {previewData.map((r, i) => (
-                  <tr key={i} className="border-b hover:bg-slate-50">
-                    <td className="p-3 border-r font-mono">{r.c1}</td>
-                    <td className="p-3 border-r">{r.c2}</td>
-                    <td className="p-3 border-r">{r.c3}</td>
-                    <td className="p-3 border-r">{r.c4}</td>
-                    <td className="p-3 border-r">{r.c5}</td>
-                    {r.c6 && <td className="p-3 font-bold">{r.c6}</td>}
-                  </tr>
-                ))}
+                {previewData.map((r, i) => {
+                  const isTotal = r.c1 === "TOTAL GERAL";
+                  const isAnalytic = previewTitle.includes("Analítico");
+                  const centerCols = isAnalytic ? [3, 4, 5] : [1, 2, 3];
+                  return (
+                    <tr key={i} className="border-b hover:bg-slate-50">
+                      <td className={`p-3 border-r font-mono ${isTotal ? 'bg-blue-600 text-white font-bold' : ''}`}>{r.c1}</td>
+                      <td className={`p-3 border-r ${isTotal ? 'bg-blue-600 text-white font-bold' : (centerCols.includes(1) ? 'text-center' : '')}`}>{r.c2}</td>
+                      <td className={`p-3 border-r ${isTotal ? 'bg-blue-600 text-white font-bold' : (centerCols.includes(2) ? 'text-center' : '')}`}>{r.c3}</td>
+                      <td className={`p-3 border-r ${isTotal ? 'bg-blue-600 text-white font-bold' : (centerCols.includes(3) ? 'text-center' : '')}`}>{r.c4}</td>
+                      <td className={`p-3 border-r ${isTotal ? 'font-bold' : (centerCols.includes(4) ? 'text-center' : '')}`}>{r.c5}</td>
+                      {r.c6 !== undefined && <td className={`p-3 font-bold ${centerCols.includes(5) ? 'text-center' : ''}`}>{r.c6}</td>}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

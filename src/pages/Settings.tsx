@@ -67,20 +67,13 @@ const Settings = () => {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array" });
       const sheetName = wb.SheetNames[0];
-      const data = XLSX.utils.sheet_to_json<any>(wb.Sheets[sheetName]);
+      // Lê forçando as chaves a serem as letras das colunas: A, B, C, D, E, F, G, H...
+      const data = XLSX.utils.sheet_to_json<any>(wb.Sheets[sheetName], { header: "A", defval: "" });
 
       if (!data.length) {
         toast.error("Empty file / Arquivo vazio");
         return;
       }
-
-      // Simple column mapper
-      const map = (item: any, options: string[]) => {
-        const key = Object.keys(item).find(k => 
-          options.some(opt => k.toLowerCase().trim().includes(opt.toLowerCase()))
-        );
-        return key ? item[key] : null;
-      };
 
       let importedCount = 0;
       
@@ -88,29 +81,52 @@ const Settings = () => {
       const existing = all<{ code: string }>("SELECT code FROM tools WHERE code GLOB '[0-9][0-9][0-9][0-9]' ORDER BY code DESC LIMIT 1");
       let nextNum = existing.length > 0 ? parseInt(existing[0].code, 10) + 1 : 1;
 
-      data.forEach((item: any) => {
-        const name = map(item, ["Nome", "Name", "Descrição", "Description"]);
-        if (!name) return; // Skip items without name
+      const normalizeStr = (s: any) => {
+        if (!s) return "";
+        return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      };
 
-        let code = map(item, ["Código", "Code", "ID"]);
-        if (code) {
+      data.forEach((item: any, index: number) => {
+        // Pula a primeira linha se for o cabeçalho
+        if (index === 0 && (normalizeStr(item["A"]).includes("cod") || normalizeStr(item["B"]).includes("nome"))) {
+          return;
+        }
+
+        const name = item["B"]; // Coluna B = NOME
+        if (!name || String(name).trim() === "") return;
+
+        let code = item["A"]; // Coluna A = Código
+        if (code && String(code).trim() !== "") {
           code = String(code).padStart(4, "0");
         } else {
           code = String(nextNum).padStart(4, "0");
           nextNum++;
         }
 
-        const brand = map(item, ["Marca", "Brand", "Fabricante"]);
-        const model = map(item, ["Modelo", "Model"]);
-        const type = map(item, ["Tipo", "Type", "Categoria"]);
-        const serial = map(item, ["Série", "Serial", "S/N"]);
-        let tag = map(item, ["TAG"]);
-        if (tag) tag = String(tag).padStart(4, "0");
+        const brand = item["C"]; // Coluna C = Marca
+        const type = item["D"] || item["E"]; // Coluna D = Categoria / E = Tipo
+        const model = ""; // Modelo não especificado
+        const serial = item["F"]; // Coluna F = Serie/TAG
+        let tag = item["F"];
+        if (tag && String(tag).trim() !== "") tag = String(tag).padStart(4, "0");
 
-        const qty = parseInt(map(item, ["Quantidade", "Qty", "Qtd", "Quantity"])) || 1;
-        const val = parseFloat(map(item, ["Valor", "Value", "Price", "Preço"])) || 0;
-        const cal = map(item, ["Calibração", "Calibration", "Exige"]) ? 1 : 0;
-        const insp = map(item, ["Inspeção", "Inspection"]) ? 1 : 0;
+        const qty = parseInt(item["I"]) || 1; // Fallback se tiver Qtd
+        const val = parseFloat(item["J"]) || 0; // Fallback se tiver Valor
+        
+        const parseBool = (val: any) => {
+          if (val === undefined || val === null || val === "") return 0;
+          const str = normalizeStr(val);
+          if (str === "0" || str.includes("nao") || str.includes("no") || str.includes("fals")) return 0;
+          if (str.includes("sim") || str === "s" || str === "y" || str.includes("yes") || str.includes("tru") || str.includes("verdadeir") || str === "1" || str === "x") return 1;
+          return 0;
+        };
+
+        // Solicitação específica do usuário: G = Inspeção, H = Calibração
+        const inspRaw = item["G"];
+        const calRaw = item["H"];
+        
+        const insp = parseBool(inspRaw);
+        const cal = parseBool(calRaw);
 
         run(
           `INSERT INTO tools (id, code, name, brand, model, type, serial_tag, tag, status, quantity, value_eur, requires_calibration, requires_inspection)
