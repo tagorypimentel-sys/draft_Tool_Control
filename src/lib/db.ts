@@ -113,6 +113,7 @@ CREATE TABLE IF NOT EXISTS clients (
   name TEXT NOT NULL,
   contact TEXT,
   email TEXT,
+  city TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 `;
@@ -133,6 +134,7 @@ const ALTERS = [
   "ALTER TABLE tools ADD COLUMN calibration_frequency INTEGER",
   "ALTER TABLE tools ADD COLUMN tag TEXT",
   "ALTER TABLE cautelas ADD COLUMN delivered_by TEXT",
+  "ALTER TABLE clients ADD COLUMN city TEXT",
   `CREATE VIEW IF NOT EXISTS v_calibration_status AS
    SELECT
      t.id AS tool_id,

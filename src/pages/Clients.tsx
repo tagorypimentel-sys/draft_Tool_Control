@@ -11,12 +11,12 @@ import { all, run, uid } from "@/lib/db";
 import { useDb } from "@/hooks/useDb";
 import { toast } from "sonner";
 
-type Client = { id: string; name: string; contact: string | null; email: string | null };
+type Client = { id: string; name: string; city: string | null };
 
 const Clients = () => {
   const { version, bump } = useDb();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<Partial<Client>>({ name: "", contact: "", email: "" });
+  const [form, setForm] = useState<Partial<Client>>({ name: "", city: "" });
   const [editId, setEditId] = useState<string | null>(null);
 
   const list = useMemo(() => {
@@ -26,7 +26,7 @@ const Clients = () => {
 
   const openNew = () => { 
     setEditId(null); 
-    setForm({ name: "", contact: "", email: "" }); 
+    setForm({ name: "", city: "" }); 
     setOpen(true); 
   };
   
@@ -43,12 +43,12 @@ const Clients = () => {
     }
     
     if (editId) {
-      run("UPDATE clients SET name=?, contact=?, email=? WHERE id=?",
-        [form.name, form.contact || null, form.email || null, editId]);
+      run("UPDATE clients SET name=?, city=? WHERE id=?",
+        [form.name, form.city || null, editId]);
       toast.success("Updated / Atualizado");
     } else {
-      run("INSERT INTO clients (id, name, contact, email) VALUES (?,?,?,?)",
-        [uid(), form.name, form.contact || null, form.email || null]);
+      run("INSERT INTO clients (id, name, city) VALUES (?,?,?)",
+        [uid(), form.name, form.city || null]);
       toast.success("Added / Adicionado");
     }
     setOpen(false); 
@@ -81,15 +81,14 @@ const Clients = () => {
           <TableHeader>
             <TableRow>
               <TableHead><BiLabel en="Client Name" pt="Nome do Cliente" size="table" /></TableHead>
-              <TableHead><BiLabel en="Contact" pt="Contato" size="table" /></TableHead>
-              <TableHead><BiLabel en="Email" pt="Correio Eletrônico" size="table" /></TableHead>
+              <TableHead><BiLabel en="City" pt="Cidade" size="table" /></TableHead>
               <TableHead className="text-right"><BiLabel en="Actions" pt="Ações" size="table" /></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {list.length === 0 ? (
                 <TableRow>
-                    <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                    <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
                         <BiLabel en="No clients found" pt="Nenhum cliente encontrado" />
                     </TableCell>
                 </TableRow>
@@ -97,8 +96,7 @@ const Clients = () => {
                 list.map((c) => (
                     <TableRow key={c.id}>
                         <TableCell className="font-medium">{c.name}</TableCell>
-                        <TableCell>{c.contact || "—"}</TableCell>
-                        <TableCell>{c.email || "—"}</TableCell>
+                        <TableCell>{c.city || "—"}</TableCell>
                         <TableCell className="text-right">
                             <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
                             <Button variant="ghost" size="icon" onClick={() => remove(c.id)}><Trash2 className="h-4 w-4" /></Button>
@@ -123,12 +121,8 @@ const Clients = () => {
               <Input value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </div>
             <div className="space-y-1">
-              <Label><BiLabel en="Contact" pt="Contato" size="small" /></Label>
-              <Input value={form.contact || ""} onChange={(e) => setForm({ ...form, contact: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <Label><BiLabel en="Email" pt="Email" size="small" /></Label>
-              <Input value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <Label><BiLabel en="City" pt="Cidade" size="small" /></Label>
+              <Input value={form.city || ""} onChange={(e) => setForm({ ...form, city: e.target.value })} />
             </div>
           </div>
           <DialogFooter>
