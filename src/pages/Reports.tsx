@@ -18,10 +18,10 @@ import { format } from "date-fns";
 const Reports = () => {
   const { version } = useDb();
   
-  // States para Inventário
-  const [invSearch, setInvSearch] = useState("");
-  const [invCategory, setInvCategory] = useState("all");
-  const [invTag, setInvTag] = useState("");
+  // States para Inventário (Filtros removidos conforme pedido)
+  // const [invSearch, setInvSearch] = useState("");
+  // const [invCategory, setInvCategory] = useState("all");
+  // const [invTag, setInvTag] = useState("");
 
   // States para Rastreabilidade por Item
   const [selectedToolId, setSelectedToolId] = useState("");
@@ -48,14 +48,7 @@ const Reports = () => {
     return Array.from(new Set(allTools.map(t => t.type).filter(Boolean))).sort() as string[];
   }, [allTools]);
 
-  const filteredInvTools = useMemo(() => {
-    return allTools.filter(t => {
-      const mS = !invSearch || t.name.toLowerCase().includes(invSearch.toLowerCase()) || t.code.toLowerCase().includes(invSearch.toLowerCase());
-      const mC = invCategory === "all" || t.category === invCategory;
-      const mT = !invTag || (t.tag || "").toLowerCase().includes(invTag.toLowerCase());
-      return mS && mC && mT;
-    });
-  }, [allTools, invSearch, invCategory, invTag]);
+  const filteredInvTools = allTools; // Filtros desativados conforme solicitado
 
   const filteredTraceTools = useMemo(() => {
     return allTools.filter(t => {
@@ -68,21 +61,60 @@ const Reports = () => {
 
   const fmtEUR = (v: number) => `€ ${v.toLocaleString("de-DE", { minimumFractionDigits: 2 })}`;
 
-  const handlePreviewInventory = (type: "analytic" | "synthetic") => {
-    if (!filteredInvTools.length) return toast.error("No data");
-    setPreviewTitle(type === "analytic" ? "Inventário Analítico" : "Inventário Sintético");
-    
+  const getInventoryData = (type: "analytic" | "synthetic") => {
+    const tools = allTools;
     if (type === "analytic") {
-      setPreviewHeaders(["Código", "Ferramenta", "TAG", "Quantidade", "Valor Total"]);
-      setPreviewData(filteredInvTools.map(t => ({ c1: t.code, c2: t.name, c3: t.tag || "—", c4: t.quantity, c5: fmtEUR((t.value_eur || 0) * t.quantity) })));
+      const headers = ["Código", "Ferramenta", "TAG", "Qtd", "Valor Total"];
+      const pdfData = tools.map(t => ({ 
+        c1: t.code, 
+        c2: t.name, 
+        c3: t.tag || "—", 
+        c4: String(t.quantity), 
+        c5: fmtEUR((t.value_eur || 0) * t.quantity) 
+      }));
+      const excelData = tools.map(t => ({ 
+        "Código": t.code, 
+        "Ferramenta": t.name, 
+        "TAG": t.tag || "—", 
+        "Quantidade": t.quantity, 
+        "Valor Total": (t.value_eur || 0) * t.quantity 
+      }));
+      return { headers, pdfData, excelData, title: "Inventário Analítico" };
     } else {
-      setPreviewHeaders(["Item", "Quantidade Total", "Valor Total"]);
-      const summary = filteredInvTools.reduce((acc, t) => {
+      const headers = ["Item", "Quantidade Total", "Valor Total"];
+      const summary = tools.reduce((acc, t) => {
         if (!acc[t.name]) acc[t.name] = { name: t.name, qty: 0, total: 0 };
         acc[t.name].qty += t.quantity; acc[t.name].total += (t.value_eur || 0) * t.quantity;
         return acc;
       }, {} as any);
-      setPreviewData(Object.values(summary).map((s: any) => ({ c1: s.name, c2: s.qty, c3: fmtEUR(s.total) })));
+      const values = Object.values(summary);
+      const pdfData = values.map((s: any) => ({ 
+        c1: s.name, 
+        c2: String(s.qty), 
+        c3: fmtEUR(s.total) 
+      }));
+      const excelData = values.map((s: any) => ({ 
+        "Item": s.name, 
+        "Quantidade Total": s.qty, 
+        "Valor Total": s.total 
+      }));
+      return { headers, pdfData, excelData, title: "Inventário Sintético" };
+    }
+  };
+
+  const handleActionInventory = (type: "analytic" | "synthetic", action: "view" | "excel" | "pdf") => {
+    if (!allTools.length) return toast.error("Sem dados no inventário");
+    const { headers, pdfData, excelData, title } = getInventoryData(type);
+    
+    if (action === "view") {
+      setPreviewTitle(title);
+      setPreviewHeaders(headers);
+      setPreviewData(pdfData);
+    } else if (action === "excel") {
+      exportExcel(excelData, title.toLowerCase().replace(/ /g, "_"));
+      toast.success(`${title} exportado para Excel`);
+    } else if (action === "pdf") {
+      generatePDF(title, headers, pdfData);
     }
   };
 
@@ -147,23 +179,43 @@ const Reports = () => {
       <BiLabel en="Reports" pt="Relatórios" />
       
       {/* SEÇÃO 1: INVENTÁRIO (AZUL) */}
-      <Card className="p-6 border-t-4 border-t-blue-600 space-y-4 shadow-sm bg-slate-50/30">
-        <div className="flex items-center gap-2 mb-2">
-            <LayoutList className="h-5 w-5 text-blue-600" />
-            <h3 className="font-bold text-lg">Inventário de Ferramentas</h3>
+      <Card className="p-6 border-t-4 border-t-blue-600 space-y-6 shadow-sm bg-slate-50/30">
+        <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <LayoutList className="h-5 w-5 text-blue-600" />
+              <h3 className="font-bold text-lg">Inventário de Ferramentas</h3>
+            </div>
+            <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase">Relatórios Gerais</span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-1"><Label className="text-[10px] uppercase font-bold text-slate-500">Busca / Search</Label><Input value={invSearch} onChange={e => setInvSearch(e.target.value)} placeholder="Código ou nome..." className="bg-white" /></div>
-          <div className="space-y-1"><Label className="text-[10px] uppercase font-bold text-slate-500">Categoria</Label>
-            <Select value={invCategory} onValueChange={setInvCategory}><SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="all">Todas as Categorias</SelectItem>{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Opções Analítico */}
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+            <div className="flex items-center gap-2 border-b pb-2">
+              <div className="p-1.5 bg-blue-50 rounded-lg text-blue-600"><FileText className="h-4 w-4" /></div>
+              <h4 className="font-bold text-slate-700">Relatório Analítico</h4>
+            </div>
+            <p className="text-xs text-slate-500">Lista detalhada de todas as ferramentas, incluindo código, TAG e valor individual.</p>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" className="flex-1" onClick={() => handleActionInventory("analytic", "view")}><Eye className="mr-2 h-4 w-4" /> Ver</Button>
+              <Button size="sm" variant="outline" className="flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => handleActionInventory("analytic", "excel")}><FileSpreadsheet className="mr-2 h-4 w-4" /> Excel</Button>
+              <Button size="sm" variant="outline" className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50" onClick={() => handleActionInventory("analytic", "pdf")}><Download className="mr-2 h-4 w-4" /> PDF</Button>
+            </div>
           </div>
-          <div className="space-y-1"><Label className="text-[10px] uppercase font-bold text-slate-500">TAG</Label><Input value={invTag} onChange={e => setInvTag(e.target.value)} placeholder="0000" className="bg-white" /></div>
-        </div>
-        <div className="flex gap-2 pt-2">
-          <Button className="flex-1" variant="outline" onClick={() => handlePreviewInventory("analytic")}><Eye className="mr-2 h-4 w-4" />Ver Analítico</Button>
-          <Button className="flex-1" variant="outline" onClick={() => handlePreviewInventory("synthetic")}><Eye className="mr-2 h-4 w-4" />Ver Sintético</Button>
-          <Button variant="secondary" onClick={() => exportExcel(filteredInvTools, "inventario")}><FileSpreadsheet className="mr-2 h-4 w-4" />Excel</Button>
+
+          {/* Opções Sintético */}
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+            <div className="flex items-center gap-2 border-b pb-2">
+              <div className="p-1.5 bg-blue-50 rounded-lg text-blue-600"><LayoutList className="h-4 w-4" /></div>
+              <h4 className="font-bold text-slate-700">Relatório Sintético</h4>
+            </div>
+            <p className="text-xs text-slate-500">Resumo consolidado por item, agrupando quantidades e valores totais.</p>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" className="flex-1" onClick={() => handleActionInventory("synthetic", "view")}><Eye className="mr-2 h-4 w-4" /> Ver</Button>
+              <Button size="sm" variant="outline" className="flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => handleActionInventory("synthetic", "excel")}><FileSpreadsheet className="mr-2 h-4 w-4" /> Excel</Button>
+              <Button size="sm" variant="outline" className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50" onClick={() => handleActionInventory("synthetic", "pdf")}><Download className="mr-2 h-4 w-4" /> PDF</Button>
+            </div>
+          </div>
         </div>
       </Card>
 
