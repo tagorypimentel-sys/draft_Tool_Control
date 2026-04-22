@@ -15,7 +15,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Search, Upload, X, Eye, Copy, FileSpreadsheet, FileText, Timer, ClipboardCheck, RotateCcw } from "lucide-react";
+import { Plus, Pencil, Search, Upload, X, Eye, Copy, FileSpreadsheet, FileText, Timer, ClipboardCheck } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -89,7 +89,7 @@ function nextCode(): string {
     const n = parseInt(r.code, 10);
     if (!isNaN(n) && n > max) max = n;
   }
-  return String(max + 1).padStart(4, "0");
+  return String(max + 1).padStart(5, "0");
 }
 
 const Inventory = () => {
@@ -285,19 +285,19 @@ const Inventory = () => {
       toast.error("Code and Name are required / Código e Nome obrigatórios");
       return;
     }
-    if (form.tag && !/^\d{4}$/.test(String(form.tag).trim())) {
+    if (form.category !== "Consumable" && form.tag && !/^\d{4}$/.test(String(form.tag).trim())) {
       toast.error("TAG must be 4 digits / TAG deve ter 4 dígitos");
       return;
     }
-    const tagValue = form.tag ? String(form.tag).trim().padStart(4, "0") : null;
+    const tagValue = form.category === "Consumable" ? null : (form.tag ? String(form.tag).trim() : null);
     if (editId) {
       run(
         `UPDATE tools SET code=?, name=?, brand=?, model=?, type=?, serial_tag=?, tag=?, category=?, status=?, acquisition_date=?, value_eur=?, quantity=?, notes=?, photo_url=?, requires_calibration=?, requires_inspection=? WHERE id=?`,
         [form.code, form.name, form.brand || null, form.model || null, form.type || null, form.serial_tag || null, tagValue,
-        form.category || null, form.status || "available",
-        form.acquisition_date || null, Number(form.value_eur) || 0, Number(form.quantity) || 1,
-        form.notes || null, form.photo_url || null,
-        form.requires_calibration ? 1 : 0, form.requires_inspection ? 1 : 0, editId]
+         form.category || null, form.status || "available",
+         form.acquisition_date || null, Number(form.value_eur) || 0, Number(form.quantity) || 1,
+         form.notes || null, form.photo_url || null,
+         form.requires_calibration ? 1 : 0, form.requires_inspection ? 1 : 0, editId]
       );
       toast.success("Tool updated / Ferramenta atualizada");
     } else {
@@ -305,10 +305,10 @@ const Inventory = () => {
         `INSERT INTO tools (id, code, name, brand, model, type, serial_tag, tag, category, status, acquisition_date, value_eur, quantity, notes, photo_url, requires_calibration, requires_inspection)
          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [uid(), form.code, form.name, form.brand || null, form.model || null, form.type || null, form.serial_tag || null, tagValue,
-        form.category || null, form.status || "available",
-        form.acquisition_date || null, Number(form.value_eur) || 0, Number(form.quantity) || 1,
-        form.notes || null, form.photo_url || null,
-        form.requires_calibration ? 1 : 0, form.requires_inspection ? 1 : 0]
+         form.category || null, form.status || "available",
+         form.acquisition_date || null, Number(form.value_eur) || 0, Number(form.quantity) || 1,
+         form.notes || null, form.photo_url || null,
+         form.requires_calibration ? 1 : 0, form.requires_inspection ? 1 : 0]
       );
       toast.success("Tool added / Ferramenta adicionada");
     }
@@ -420,35 +420,8 @@ const Inventory = () => {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={14} className="text-center py-20">
-                  <div className="flex flex-col items-center gap-4">
-                    <BiLabel en="No tools found" pt="Nenhuma ferramenta encontrada" />
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => (document.getElementById('import-db-empty') as HTMLInputElement)?.click()}>
-                        <RotateCcw className="mr-2 h-4 w-4" />
-                        <BiLabel en="Restore Backup (.sqlite)" pt="Restaurar Backup (.sqlite)" size="small" />
-                      </Button>
-                      <input
-                        id="import-db-empty"
-                        type="file"
-                        accept=".sqlite"
-                        className="hidden"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onload = async (ev) => {
-                              const bytes = new Uint8Array(ev.target?.result as ArrayBuffer);
-                              const { importDbBytes } = await import("@/lib/db");
-                              await importDbBytes(bytes);
-                              window.location.reload();
-                            };
-                            reader.readAsArrayBuffer(file);
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
+                <TableCell colSpan={13} className="text-center py-10">
+                  <BiLabel en="No tools found" pt="Nenhuma ferramenta encontrada" className="items-center" />
                 </TableCell>
               </TableRow>
             ) : (
@@ -469,6 +442,25 @@ const Inventory = () => {
                   <TableCell className="font-mono text-sm">{t.code}</TableCell>
                   <TableCell className="font-medium">
                     {t.name}
+                    {(t.requires_calibration || t.requires_inspection) ? (
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        {t.requires_calibration ? (() => {
+                          const cs = getCalibrationStatus(t.next_calibration_date);
+                          const cls = CALIBRATION_STATUS_CLASSES[cs];
+                          return (
+                            <span
+                              className={`text-[9px] px-1 rounded border ${cls.badge}`}
+                              title={getCalibrationBadgeLabel(cs, lang)}
+                            >
+                              CAL
+                            </span>
+                          );
+                        })() : null}
+                        {t.requires_inspection ? (
+                          <span className="text-[9px] bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 px-1 rounded">INSP</span>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </TableCell>
                   <TableCell>{t.brand || "—"}</TableCell>
                   <TableCell>{t.category || "—"}</TableCell>
@@ -478,12 +470,12 @@ const Inventory = () => {
                   <TableCell>
                     <div className="flex justify-center gap-2">
                       {t.requires_calibration ? (
-                        <span title="Requires Calibration / Exige Calibração"><Timer className="h-4 w-4 text-sky-600 dark:text-sky-400" /></span>
+                        <Timer className="h-4 w-4 text-sky-600 dark:text-sky-400" title="Requires Calibration / Exige Calibração" />
                       ) : (
                         <div className="h-4 w-4" />
                       )}
                       {t.requires_inspection ? (
-                        <span title="Requires Inspection / Exige Inspeção"><ClipboardCheck className="h-4 w-4 text-purple-600 dark:text-purple-400" /></span>
+                        <ClipboardCheck className="h-4 w-4 text-purple-600 dark:text-purple-400" title="Requires Inspection / Exige Inspeção" />
                       ) : (
                         <div className="h-4 w-4" />
                       )}
@@ -597,17 +589,19 @@ const Inventory = () => {
               <Label><BiLabel en="Serial" pt="Série" size="small" /></Label>
               <Input value={form.serial_tag || ""} onChange={(e) => setForm({ ...form, serial_tag: e.target.value })} />
             </div>
-            <div className="space-y-1">
-              <Label><BiLabel en="TAG (4 digits)" pt="TAG (4 dígitos)" size="small" /></Label>
-              <Input
-                inputMode="numeric"
-                maxLength={4}
-                pattern="\d{4}"
-                placeholder="0000"
-                value={form.tag || ""}
-                onChange={(e) => setForm({ ...form, tag: e.target.value.replace(/\D/g, "").slice(0, 4) })}
-              />
-            </div>
+            {form.category !== "Consumable" && (
+              <div className="space-y-1">
+                <Label><BiLabel en="TAG (4 digits)" pt="TAG (4 dígitos)" size="small" /></Label>
+                <Input
+                  inputMode="numeric"
+                  maxLength={4}
+                  pattern="\d{4}"
+                  placeholder="0000"
+                  value={form.tag || ""}
+                  onChange={(e) => setForm({ ...form, tag: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                />
+              </div>
+            )}
             <div className="space-y-1">
               <Label><BiLabel en="Quantity" pt="Quantidade" size="small" /></Label>
               <Input type="number" min={0} value={form.quantity ?? 1} onChange={(e) => setForm({ ...form, quantity: parseInt(e.target.value, 10) || 0 })} />
@@ -629,7 +623,7 @@ const Inventory = () => {
                 <span className="text-xs">Tool</span>
                 <Switch
                   checked={form.category === "Consumable"}
-                  onCheckedChange={(v) => setForm({ ...form, category: v ? "Consumable" : "Tool" })}
+                  onCheckedChange={(v) => setForm({ ...form, category: v ? "Consumable" : "Tool", tag: v ? "" : form.tag })}
                 />
                 <span className="text-xs">Consumable</span>
               </div>
@@ -711,7 +705,7 @@ const Inventory = () => {
           {quickView && (
             <div className="flex flex-col items-center gap-4">
               {quickView.photo_url ? (
-                <img src={quickView.photo_url} alt={quickView.name} className="h-60 w-60 rounded-lg object-contain border bg-white" />
+                <img src={quickView.photo_url} alt={quickView.name} className="h-60 w-60 rounded-lg object-cover border" />
               ) : (
                 <div className="h-60 w-60 rounded-lg bg-muted flex items-center justify-center border">
                   <Eye className="h-12 w-12 text-muted-foreground" />
@@ -818,7 +812,7 @@ const Inventory = () => {
                 const src = batchSource;
                 let baseNum = parseInt(nextCode(), 10);
                 for (const tag of tags) {
-                  const newCode = String(baseNum).padStart(4, "0");
+                  const newCode = String(baseNum).padStart(5, "0");
                   baseNum += 1;
                   run(
                     `INSERT INTO tools (id, code, name, brand, model, type, serial_tag, tag, category, status, acquisition_date, value_eur, quantity, notes, photo_url, requires_calibration, requires_inspection)
