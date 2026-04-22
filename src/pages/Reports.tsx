@@ -101,15 +101,14 @@ const Reports = () => {
   const getInventoryData = (type: "analytic" | "synthetic") => {
     const tools = allTools;
     if (type === "analytic") {
-      const headers = ["Código", "Ferramenta", "TAG", "Total", "Emp.", "Disp.", "Valor Total"];
+      const headers = ["Código", "Ferramenta", "TAG", "Total", "Emp.", "Disp."];
       const pdfData = tools.map(t => ({ 
         c1: t.code, 
         c2: t.name, 
         c3: t.tag || "—", 
         c4: String(t.quantity), 
         c5: String(t.qty_out_now),
-        c6: String(t.available_qty),
-        c7: fmtEUR((t.value_eur || 0) * t.available_qty) 
+        c6: String(t.available_qty)
       }));
       const excelData = tools.map(t => ({ 
         "Código": t.code, 
@@ -117,8 +116,7 @@ const Reports = () => {
         "TAG": t.tag || "—", 
         "Total Geral": t.quantity,
         "Emprestado": t.qty_out_now,
-        "Disponível": t.available_qty, 
-        "Valor Total (Disp)": (t.value_eur || 0) * t.available_qty 
+        "Disponível": t.available_qty
       }));
       return { headers, pdfData, excelData, title: "Inventário Analítico" };
     } else {
@@ -128,7 +126,7 @@ const Reports = () => {
         acc[t.name].total += t.quantity; 
         acc[t.name].out += t.qty_out_now; 
         acc[t.name].avail += t.available_qty; 
-        acc[t.name].value += (t.value_eur || 0) * t.available_qty;
+        acc[t.name].value += (t.value_eur || 0) * t.quantity; // Total Geral x Valor Unitário
         return acc;
       }, {} as any);
       const values = Object.values(summary);
@@ -144,7 +142,7 @@ const Reports = () => {
         "Total Geral": s.total, 
         "Emprestado": s.out, 
         "Disponível": s.avail, 
-        "Valor Total": s.value 
+        "Valor Total (Estoque)": s.value 
       }));
       return { headers, pdfData, excelData, title: "Inventário Sintético" };
     }
@@ -220,13 +218,17 @@ const Reports = () => {
       theme: 'grid',
       headStyles: { fillColor: [37, 99, 235] },
       styles: { fontSize: 7.5 },
-      columnStyles: {
+      columnStyles: title.includes("Analítico") ? {
         0: { cellWidth: 20 }, // Código
-        2: { cellWidth: 15 }, // TAG
-        3: { cellWidth: 12 }, // Total
-        4: { cellWidth: 12 }, // Emp.
-        5: { cellWidth: 12 }, // Disp.
-        6: { cellWidth: 30 }, // Valor Total
+        2: { cellWidth: 20 }, // TAG
+        3: { cellWidth: 15 }, // Total
+        4: { cellWidth: 15 }, // Emp.
+        5: { cellWidth: 15 }, // Disp.
+      } : {
+        1: { cellWidth: 15 }, // Total
+        2: { cellWidth: 15 }, // Emp.
+        3: { cellWidth: 15 }, // Disp.
+        4: { cellWidth: 35 }, // Valor Total
       },
     });
 
