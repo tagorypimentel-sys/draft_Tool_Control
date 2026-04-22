@@ -91,15 +91,22 @@ const Reports = () => {
     if (!id || id === "_") return toast.error("Selecione um item ou técnico");
     
     const sql = target === "item" 
-      ? `SELECT c.number, c.project, t.name as tech, c.date_out, ci.qty_out, c.status FROM cautela_items ci JOIN cautelas c ON c.id = ci.cautela_id JOIN technicians t ON t.id = c.technician_id WHERE ci.tool_id = ? ORDER BY c.date_out DESC`
-      : `SELECT c.number, c.project, tl.name as tool, c.date_out, ci.qty_out, c.status FROM cautela_items ci JOIN cautelas c ON c.id = ci.cautela_id JOIN tools tl ON tl.id = ci.tool_id WHERE c.technician_id = ? ORDER BY c.date_out DESC`;
+      ? `SELECT c.number, c.project, t.name as tech, c.date_out, c.date_in, ci.qty_out, c.status FROM cautela_items ci JOIN cautelas c ON c.id = ci.cautela_id JOIN technicians t ON t.id = c.technician_id WHERE ci.tool_id = ? ORDER BY c.date_out DESC`
+      : `SELECT c.number, c.project, tl.name as tool, c.date_out, c.date_in, ci.qty_out, c.status FROM cautela_items ci JOIN cautelas c ON c.id = ci.cautela_id JOIN tools tl ON tl.id = ci.tool_id WHERE c.technician_id = ? ORDER BY c.date_out DESC`;
     
     const data = all<any>(sql, [id]);
     if (!data.length) return toast.error("Sem movimentações");
     
     setPreviewTitle(target === "item" ? "Rastreabilidade de Item" : "Histórico de Técnico");
-    setPreviewHeaders(["NR do Cautela", "NR do Projeto", target === "item" ? "Técnico" : "Ferramenta", "Data de Devolução", "Status"]);
-    setPreviewData(data.map(d => ({ c1: d.number, c2: d.project, c3: d.tech || d.tool, c4: d.date_out ? format(new Date(d.date_out), "dd/MM/yyyy") : "—", c5: d.status.toUpperCase() })));
+    setPreviewHeaders(["NR do Cautela", "NR do Projeto", target === "item" ? "Técnico" : "Ferramenta", "Data de Retirada", "Data de Devolução", "Status"]);
+    setPreviewData(data.map(d => ({ 
+      c1: d.number, 
+      c2: d.project, 
+      c3: d.tech || d.tool, 
+      c4: d.date_out ? format(new Date(d.date_out), "dd/MM/yyyy") : "—", 
+      c5: d.date_in ? format(new Date(d.date_in), "dd/MM/yyyy") : "—",
+      c6: d.status.toUpperCase() 
+    })));
   };
 
   const generatePDF = async (title: string, headers: string[], data: any[]) => {
@@ -226,8 +233,9 @@ const Reports = () => {
                     <td className="p-3 border-r font-mono">{r.c1}</td>
                     <td className="p-3 border-r">{r.c2}</td>
                     <td className="p-3 border-r">{r.c3}</td>
-                    {r.c4 && <td className="p-3 border-r">{r.c4}</td>}
-                    {r.c5 && <td className="p-3 font-bold">{r.c5}</td>}
+                    <td className="p-3 border-r">{r.c4}</td>
+                    <td className="p-3 border-r">{r.c5}</td>
+                    {r.c6 && <td className="p-3 font-bold">{r.c6}</td>}
                   </tr>
                 ))}
               </tbody>
