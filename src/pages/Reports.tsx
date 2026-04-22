@@ -41,6 +41,12 @@ const Reports = () => {
     void version; 
     return all<any>(`
       SELECT t.*, 
+      COALESCE((
+        SELECT SUM(ci.qty_out - ci.qty_returned)
+        FROM cautela_items ci
+        JOIN cautelas c ON c.id = ci.cautela_id
+        WHERE ci.tool_id = t.id AND c.status = 'open'
+      ), 0) as qty_out_now,
       (t.quantity - COALESCE((
         SELECT SUM(ci.qty_out - ci.qty_returned)
         FROM cautela_items ci
@@ -95,40 +101,50 @@ const Reports = () => {
   const getInventoryData = (type: "analytic" | "synthetic") => {
     const tools = allTools;
     if (type === "analytic") {
-      const headers = ["Código", "Ferramenta", "TAG", "Qtd", "Valor Total"];
+      const headers = ["Código", "Ferramenta", "TAG", "Total", "Emp.", "Disp.", "Valor Total"];
       const pdfData = tools.map(t => ({ 
         c1: t.code, 
         c2: t.name, 
         c3: t.tag || "—", 
-        c4: String(t.available_qty), 
-        c5: fmtEUR((t.value_eur || 0) * t.available_qty) 
+        c4: String(t.quantity), 
+        c5: String(t.qty_out_now),
+        c6: String(t.available_qty),
+        c7: fmtEUR((t.value_eur || 0) * t.available_qty) 
       }));
       const excelData = tools.map(t => ({ 
         "Código": t.code, 
         "Ferramenta": t.name, 
         "TAG": t.tag || "—", 
-        "Quantidade Disponível": t.available_qty, 
-        "Valor Total": (t.value_eur || 0) * t.available_qty 
+        "Total Geral": t.quantity,
+        "Emprestado": t.qty_out_now,
+        "Disponível": t.available_qty, 
+        "Valor Total (Disp)": (t.value_eur || 0) * t.available_qty 
       }));
       return { headers, pdfData, excelData, title: "Inventário Analítico" };
     } else {
-      const headers = ["Item", "Quantidade Total", "Valor Total"];
+      const headers = ["Item", "Total", "Emprestado", "Disponível", "Valor Total"];
       const summary = tools.reduce((acc, t) => {
-        if (!acc[t.name]) acc[t.name] = { name: t.name, qty: 0, total: 0 };
-        acc[t.name].qty += t.available_qty; 
-        acc[t.name].total += (t.value_eur || 0) * t.available_qty;
+        if (!acc[t.name]) acc[t.name] = { name: t.name, total: 0, out: 0, avail: 0, value: 0 };
+        acc[t.name].total += t.quantity; 
+        acc[t.name].out += t.qty_out_now; 
+        acc[t.name].avail += t.available_qty; 
+        acc[t.name].value += (t.value_eur || 0) * t.available_qty;
         return acc;
       }, {} as any);
       const values = Object.values(summary);
       const pdfData = values.map((s: any) => ({ 
         c1: s.name, 
-        c2: String(s.qty), 
-        c3: fmtEUR(s.total) 
+        c2: String(s.total), 
+        c3: String(s.out), 
+        c4: String(s.avail), 
+        c5: fmtEUR(s.value) 
       }));
       const excelData = values.map((s: any) => ({ 
         "Item": s.name, 
-        "Quantidade Total": s.qty, 
-        "Valor Total": s.total 
+        "Total Geral": s.total, 
+        "Emprestado": s.out, 
+        "Disponível": s.avail, 
+        "Valor Total": s.value 
       }));
       return { headers, pdfData, excelData, title: "Inventário Sintético" };
     }
@@ -203,14 +219,15 @@ const Reports = () => {
       body: body,
       theme: 'grid',
       headStyles: { fillColor: [37, 99, 235] },
-      styles: { fontSize: 8 },
+      styles: { fontSize: 7.5 },
       columnStyles: {
-        0: { cellWidth: 25 }, // Código
-        2: { cellWidth: 20 }, // TAG
-        3: { cellWidth: 15 }, // Qtd
-        4: { cellWidth: 35 }, // Valor Total
+        0: { cellWidth: 20 }, // Código
+        2: { cellWidth: 15 }, // TAG
+        3: { cellWidth: 12 }, // Total
+        4: { cellWidth: 12 }, // Emp.
+        5: { cellWidth: 12 }, // Disp.
+        6: { cellWidth: 30 }, // Valor Total
       },
-      // Deixa a coluna da Ferramenta (índice 1) com ajuste automático (o que sobra)
     });
 
     doc.save(`${title.toLowerCase().replace(/ /g, "_")}.pdf`);
