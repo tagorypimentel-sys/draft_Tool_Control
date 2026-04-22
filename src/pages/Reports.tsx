@@ -123,10 +123,15 @@ const Reports = () => {
       const headers = ["Item", "Total", "Emprestado", "Disponível", "Valor Total"];
       const summary = tools.reduce((acc, t) => {
         if (!acc[t.name]) acc[t.name] = { name: t.name, total: 0, out: 0, avail: 0, value: 0 };
-        acc[t.name].total += t.quantity; 
-        acc[t.name].out += t.qty_out_now; 
-        acc[t.name].avail += t.available_qty; 
-        acc[t.name].value += (t.value_eur || 0) * t.quantity; // Total Geral x Valor Unitário
+        const qty = Number(t.quantity) || 0;
+        const val = Number(t.value_eur) || 0;
+        const out = Number(t.qty_out_now) || 0;
+        const avail = Number(t.available_qty) || 0;
+
+        acc[t.name].total += qty; 
+        acc[t.name].out += out; 
+        acc[t.name].avail += avail; 
+        acc[t.name].value += val * qty; // Total Geral (Estoque) x Valor Unitário
         return acc;
       }, {} as any);
       const values = Object.values(summary);
@@ -142,7 +147,7 @@ const Reports = () => {
         "Total Geral": s.total, 
         "Emprestado": s.out, 
         "Disponível": s.avail, 
-        "Valor Total (Estoque)": s.value 
+        "Valor Total (Estoque Geral)": s.value 
       }));
       return { headers, pdfData, excelData, title: "Inventário Sintético" };
     }
