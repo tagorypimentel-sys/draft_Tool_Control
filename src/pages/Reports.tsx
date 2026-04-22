@@ -144,16 +144,16 @@ const Reports = () => {
         c5: fmtEUR(s.value) 
       }));
 
-      // Calculate Grand Total for 'Total' column only as requested
-      const grandQty = items.reduce((sum: number, s: any) => sum + s.total, 0);
+      // Calculate Grand Total for 'Valor Total' (€) column only
+      const grandValue = items.reduce((sum: number, s: any) => sum + s.value, 0);
 
-      // Add Grand Total row (others empty as requested)
+      // Add Grand Total row (only monetary total as requested)
       rows.push({ 
         c1: "TOTAL GERAL", 
-        c2: String(grandQty), 
+        c2: "", 
         c3: "", 
         c4: "", 
-        c5: "",
+        c5: fmtEUR(grandValue),
         isTotal: true
       });
 
