@@ -144,19 +144,16 @@ const Reports = () => {
         c5: fmtEUR(s.value) 
       }));
 
-      // Calculate Grand Totals
+      // Calculate Grand Total for 'Total' column only as requested
       const grandQty = items.reduce((sum: number, s: any) => sum + s.total, 0);
-      const grandOut = items.reduce((sum: number, s: any) => sum + s.out, 0);
-      const grandAvail = items.reduce((sum: number, s: any) => sum + s.avail, 0);
-      const grandValue = items.reduce((sum: number, s: any) => sum + s.value, 0);
 
-      // Add Grand Total row
+      // Add Grand Total row (others empty as requested)
       rows.push({ 
         c1: "TOTAL GERAL", 
         c2: String(grandQty), 
-        c3: String(grandOut), 
-        c4: String(grandAvail), 
-        c5: fmtEUR(grandValue),
+        c3: "", 
+        c4: "", 
+        c5: "",
         isTotal: true
       });
 
@@ -222,16 +219,17 @@ const Reports = () => {
       console.error("Logo error", e);
     }
 
-    // Header
-    if (logoData) {
-      doc.addImage(logoData, "PNG", 14, 10, 15, 15);
-    }
-    
-    doc.setFontSize(18);
-    doc.text(title, logoData ? 35 : 14, 20);
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Gerado em: ${dateStr}`, logoData ? 35 : 14, 26);
+    const drawHeader = (doc: jsPDF) => {
+      if (logoData) {
+        doc.addImage(logoData, "PNG", 14, 10, 15, 15);
+      }
+      doc.setFontSize(18);
+      doc.setTextColor(0);
+      doc.text(title, logoData ? 35 : 14, 20);
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Gerado em: ${dateStr}`, logoData ? 35 : 14, 26);
+    };
 
     const body = data.map(r => headers.map((_, idx) => r[`c${idx + 1}`]));
 
@@ -242,6 +240,7 @@ const Reports = () => {
       theme: 'grid',
       headStyles: { fillColor: [37, 99, 235] },
       styles: { fontSize: 7.5 },
+      margin: { top: 35 },
       columnStyles: title.includes("Analítico") ? {
         0: { cellWidth: 25 }, // Código
         2: { cellWidth: 25 }, // TAG
@@ -254,6 +253,9 @@ const Reports = () => {
         2: { cellWidth: 22 }, // Emp.
         3: { cellWidth: 22 }, // Disp.
         4: { cellWidth: 35 }, // Valor Total
+      },
+      didDrawPage: (data) => {
+        drawHeader(doc);
       },
       didParseCell: (data) => {
         if (data.section === 'body') {
