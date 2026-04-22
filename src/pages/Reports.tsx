@@ -37,7 +37,21 @@ const Reports = () => {
   const [previewTitle, setPreviewTitle] = useState("");
   const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
 
-  const allTools = useMemo(() => { void version; return all<any>("SELECT * FROM tools ORDER BY name ASC"); }, [version]);
+  const allTools = useMemo(() => { 
+    void version; 
+    return all<any>(`
+      SELECT t.*, 
+      (t.quantity - COALESCE((
+        SELECT SUM(ci.qty_out - ci.qty_returned)
+        FROM cautela_items ci
+        JOIN cautelas c ON c.id = ci.cautela_id
+        WHERE ci.tool_id = t.id AND c.status = 'open'
+      ), 0)) as available_qty
+      FROM tools t 
+      ORDER BY t.name ASC
+    `); 
+  }, [version]);
+
   const technicians = useMemo(() => { void version; return all<any>("SELECT * FROM technicians ORDER BY name ASC"); }, [version]);
 
   const categories = useMemo(() => {
@@ -61,6 +75,23 @@ const Reports = () => {
 
   const fmtEUR = (v: number) => `€ ${v.toLocaleString("de-DE", { minimumFractionDigits: 2 })}`;
 
+  const loadImageAsDataURL = (src: string): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("canvas context unavailable"));
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = reject;
+      img.src = src;
+    });
+
   const getInventoryData = (type: "analytic" | "synthetic") => {
     const tools = allTools;
     if (type === "analytic") {
@@ -69,22 +100,23 @@ const Reports = () => {
         c1: t.code, 
         c2: t.name, 
         c3: t.tag || "—", 
-        c4: String(t.quantity), 
-        c5: fmtEUR((t.value_eur || 0) * t.quantity) 
+        c4: String(t.available_qty), 
+        c5: fmtEUR((t.value_eur || 0) * t.available_qty) 
       }));
       const excelData = tools.map(t => ({ 
         "Código": t.code, 
         "Ferramenta": t.name, 
         "TAG": t.tag || "—", 
-        "Quantidade": t.quantity, 
-        "Valor Total": (t.value_eur || 0) * t.quantity 
+        "Quantidade Disponível": t.available_qty, 
+        "Valor Total": (t.value_eur || 0) * t.available_qty 
       }));
       return { headers, pdfData, excelData, title: "Inventário Analítico" };
     } else {
       const headers = ["Item", "Quantidade Total", "Valor Total"];
       const summary = tools.reduce((acc, t) => {
         if (!acc[t.name]) acc[t.name] = { name: t.name, qty: 0, total: 0 };
-        acc[t.name].qty += t.quantity; acc[t.name].total += (t.value_eur || 0) * t.quantity;
+        acc[t.name].qty += t.available_qty; 
+        acc[t.name].total += (t.value_eur || 0) * t.available_qty;
         return acc;
       }, {} as any);
       const values = Object.values(summary);
@@ -145,22 +177,40 @@ const Reports = () => {
     const doc = new jsPDF();
     const dateStr = format(new Date(), "dd/MM/yyyy HH:mm");
     
+    let logoData = "";
+    try {
+      logoData = await loadImageAsDataURL(koeLogo);
+    } catch (e) {
+      console.error("Logo error", e);
+    }
+
     // Header
+    if (logoData) {
+      doc.addImage(logoData, "PNG", 14, 10, 15, 15);
+    }
+    
     doc.setFontSize(18);
-    doc.text(title, 14, 22);
+    doc.text(title, logoData ? 35 : 14, 20);
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(`Gerado em: ${dateStr}`, 14, 30);
+    doc.text(`Gerado em: ${dateStr}`, logoData ? 35 : 14, 26);
 
     const body = data.map(r => headers.map((_, idx) => r[`c${idx + 1}`]));
 
     autoTable(doc, {
-      startY: 35,
+      startY: 32,
       head: [headers],
       body: body,
       theme: 'grid',
       headStyles: { fillColor: [37, 99, 235] },
-      styles: { fontSize: 8 }
+      styles: { fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 25 }, // Código
+        2: { cellWidth: 20 }, // TAG
+        3: { cellWidth: 15 }, // Qtd
+        4: { cellWidth: 35 }, // Valor Total
+      },
+      // Deixa a coluna da Ferramenta (índice 1) com ajuste automático (o que sobra)
     });
 
     doc.save(`${title.toLowerCase().replace(/ /g, "_")}.pdf`);
