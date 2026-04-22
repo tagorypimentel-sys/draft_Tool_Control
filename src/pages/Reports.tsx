@@ -122,56 +122,35 @@ const Reports = () => {
     } else {
       const headers = ["Item", "Total", "Emprestado", "Disponível", "Valor Total"];
       const summary = tools.reduce((acc, t) => {
-        const tType = t.type || "Sem Tipo";
-        if (!acc[tType]) acc[tType] = {};
-        if (!acc[tType][t.name]) acc[tType][t.name] = { name: t.name, total: 0, out: 0, avail: 0, value: 0 };
+        if (!acc[t.name]) acc[t.name] = { name: t.name, total: 0, out: 0, avail: 0, value: 0 };
         const qty = Number(t.quantity) || 0;
         const val = Number(t.value_eur) || 0;
         const out = Number(t.qty_out_now) || 0;
         const avail = Number(t.available_qty) || 0;
 
-        acc[tType][t.name].total += qty; 
-        acc[tType][t.name].out += out; 
-        acc[tType][t.name].avail += avail; 
-        acc[tType][t.name].value += val * qty;
+        acc[t.name].total += qty; 
+        acc[t.name].out += out; 
+        acc[t.name].avail += avail; 
+        acc[t.name].value += val * qty;
         return acc;
       }, {} as any);
 
-      const rows: any[] = [];
-      let grandQty = 0, grandOut = 0, grandAvail = 0, grandValue = 0;
+      const items = Object.values(summary).sort((a: any, b: any) => a.name.localeCompare(b.name));
+      const rows: any[] = items.map((s: any) => ({ 
+        c1: s.name, 
+        c2: String(s.total), 
+        c3: String(s.out), 
+        c4: String(s.avail), 
+        c5: fmtEUR(s.value) 
+      }));
 
-      Object.keys(summary).sort().forEach(tType => {
-        let typeQty = 0, typeOut = 0, typeAvail = 0, typeValue = 0;
-        
-        // Header for Type
-        rows.push({ c1: `TIPO: ${tType}`, isGroup: true });
+      // Calculate Grand Totals
+      const grandQty = items.reduce((sum: number, s: any) => sum + s.total, 0);
+      const grandOut = items.reduce((sum: number, s: any) => sum + s.out, 0);
+      const grandAvail = items.reduce((sum: number, s: any) => sum + s.avail, 0);
+      const grandValue = items.reduce((sum: number, s: any) => sum + s.value, 0);
 
-        const items = Object.values(summary[tType]).sort((a: any, b: any) => a.name.localeCompare(b.name));
-        items.forEach((s: any) => {
-          rows.push({ 
-            c1: s.name, 
-            c2: String(s.total), 
-            c3: String(s.out), 
-            c4: String(s.avail), 
-            c5: fmtEUR(s.value) 
-          });
-          typeQty += s.total; typeOut += s.out; typeAvail += s.avail; typeValue += s.value;
-        });
-
-        // Subtotal for Type
-        rows.push({ 
-          c1: `Sub-total ${tType}`, 
-          c2: String(typeQty), 
-          c3: String(typeOut), 
-          c4: String(typeAvail), 
-          c5: fmtEUR(typeValue),
-          isSubtotal: true
-        });
-
-        grandQty += typeQty; grandOut += typeOut; grandAvail += typeAvail; grandValue += typeValue;
-      });
-
-      // Grand Total
+      // Add Grand Total row
       rows.push({ 
         c1: "TOTAL GERAL", 
         c2: String(grandQty), 
@@ -181,7 +160,7 @@ const Reports = () => {
         isTotal: true
       });
 
-      const excelData = rows.filter(r => !r.isGroup).map(r => ({
+      const excelData = rows.map(r => ({
         "Item": r.c1,
         "Total": r.c2,
         "Emprestado": r.c3,
@@ -279,18 +258,9 @@ const Reports = () => {
       didParseCell: (data) => {
         if (data.section === 'body') {
           const cellText = String(data.cell.raw || "");
-          const isGroup = cellText.startsWith("TIPO:");
-          const isSubtotal = cellText.startsWith("Sub-total");
           const isTotal = cellText === "TOTAL GERAL";
 
-          if (isGroup) {
-            data.cell.styles.fillColor = [241, 245, 249];
-            data.cell.styles.fontStyle = 'bold';
-            data.cell.styles.textColor = [37, 99, 235];
-          } else if (isSubtotal) {
-            data.cell.styles.fillColor = [248, 250, 252];
-            data.cell.styles.fontStyle = 'bold';
-          } else if (isTotal) {
+          if (isTotal) {
             data.cell.styles.fillColor = [37, 99, 235];
             data.cell.styles.textColor = [255, 255, 255];
             data.cell.styles.fontStyle = 'bold';
